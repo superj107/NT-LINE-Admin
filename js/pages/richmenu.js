@@ -10,7 +10,7 @@ async function loadRichMenu() {
 function renderRichMenu(data) {
   const rows = data.map(function(row) {
     const thumb = row.image_url
-      ? `<img src="${row.image_url}" style="width:80px;height:40px;object-fit:cover;border-radius:4px">`
+      ? '<span style="color:#06C755">✅ 已上傳</span>'
       : '<span style="color:#aaa">未上傳</span>';
     return `<tr>
       <td>${row.name}</td>
