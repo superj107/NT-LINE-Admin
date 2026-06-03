@@ -130,3 +130,104 @@ tr:hover td { background: #fafafa; }
 .loading { text-align: center; padding: 40px; color: #aaa; }
 .form-row { display: flex; gap: 12px; }
 .form-group.half { flex: 1; }
+
+/* ── 推播頁面 ── */
+.broadcast-layout {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+/* 受眾清單 */
+.bc-audience-list {
+  max-height: 480px;
+  overflow-y: auto;
+  margin-top: 10px;
+}
+.bc-audience-item {
+  padding: 10px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all .15s;
+  margin-bottom: 6px;
+  background: var(--bg-secondary);
+}
+.bc-audience-item:hover  { border-color: var(--primary); }
+.bc-audience-item.selected { border-color: var(--primary); background: var(--primary-light); }
+.bc-aud-name  { font-weight: 600; font-size: 14px; }
+.bc-aud-meta  { display:flex; align-items:center; gap:8px; margin-top:4px; font-size:12px; }
+.bc-aud-count { color: var(--text-muted); }
+
+/* 訊息區塊 */
+.bc-msg-block {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+.bc-msg-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+}
+.bc-msg-index    { font-weight: 600; font-size: 13px; flex: 1; }
+.bc-msg-type-tabs { display: flex; gap: 4px; }
+.type-tab {
+  padding: 3px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: transparent;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+.type-tab.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+.bc-msg-remove {
+  background: none; border: none;
+  color: var(--text-muted);
+  cursor: pointer; font-size: 14px; padding: 2px 6px;
+}
+.bc-msg-remove:hover { color: var(--danger); }
+.bc-msg-body    { padding: 12px; }
+.bc-textarea    { width: 100%; resize: vertical; font-size: 14px; padding: 8px; border-radius: 6px; border: 1px solid var(--border); box-sizing: border-box; }
+.bc-textarea-mono { font-family: monospace; font-size: 12px; }
+.bc-input-group { margin-bottom: 10px; }
+.bc-input-group label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+.bc-input { width: 100%; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); font-size: 14px; box-sizing: border-box; }
+.flex-hint  { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+/* 目標資訊 + 發送按鈕 */
+.bc-target-info {
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 16px 0 12px;
+}
+.bc-target-info.selected { background: var(--primary-light); color: var(--text-primary); }
+.target-label  { color: var(--text-muted); }
+.target-count  { margin-left: 6px; color: var(--text-secondary); }
+.btn-block     { width: 100%; padding: 12px; font-size: 15px; }
+
+/* 紀錄表 */
+.card-header-row {
+  display: flex; align-items: center;
+  justify-content: space-between; margin-bottom: 14px;
+}
+.text-success { color: var(--success); }
+.text-danger  { color: var(--danger); }
+
+@media (max-width: 768px) {
+  .broadcast-layout { grid-template-columns: 1fr; }
+  .bc-audience-list  { max-height: 260px; }
+}
