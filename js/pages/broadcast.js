@@ -62,7 +62,7 @@ async function loadBroadcast() {
   // 載入受眾列表
   const res = await apiCall({ action: 'getAudienceForBroadcast' });
   if (res.success) {
-    _broadcastAudienceData = res.list;
+    _broadcastAudienceData = res.data.list;
     renderBcAudienceList(_broadcastAudienceData);
   } else {
     document.getElementById('bc-audience-list').innerHTML = '<p class="empty-tip">載入受眾失敗</p>';
@@ -290,7 +290,7 @@ async function loadBroadcastLog() {
   el.innerHTML = '載入中…';
 
   const res = await apiCall({ action: 'getBroadcastLog' });
-  if (!res.success || !res.list || !res.list.length) {
+  if (!res.success || !res.data.list || !res.data.list.length) {
     el.innerHTML = '<p class="empty-tip">尚無推播紀錄</p>';
     return;
   }
@@ -308,7 +308,7 @@ async function loadBroadcastLog() {
         </tr>
       </thead>
       <tbody>
-        ${res.list.map(function(r) {
+        ${res.data.list.map(function(r) {
           return `<tr>
             <td>${r.time}</td>
             <td><span class="badge">${r.audience_id}</span></td>
