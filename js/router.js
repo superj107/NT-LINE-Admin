@@ -4,6 +4,7 @@ const PAGES = {
   dashboard: { label: '儀表板',   icon: '📊', load: loadDashboard },
   audience:  { label: '受眾管理', icon: '👥', load: loadAudience  },
   richmenu:  { label: '圖文選單', icon: '🖼️', load: loadRichMenu  },
+  broadcast: { label: '📢 推播管理', load: loadBroadcast },
 };
 
 function navigateTo(page) {
