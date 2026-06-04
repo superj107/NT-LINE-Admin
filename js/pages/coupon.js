@@ -27,6 +27,7 @@ async function loadCoupon() {
         <div class="card-header-row">
           <h3 id="coupon-detail-title">請先選擇活動</h3>
           <div id="coupon-detail-actions" style="display:none;gap:8px;display:none">
+            <button class="btn btn-primary btn-sm" onclick="openPushCouponModal()">📤 推播發券</button>
             <button class="btn btn-secondary btn-sm" onclick="openUploadCodesModal()">📥 上傳序號</button>
             <button class="btn btn-danger btn-sm" onclick="deleteActivity()">🗑️ 刪除活動</button>
           </div>
@@ -86,6 +87,58 @@ async function loadCoupon() {
         <div class="modal-footer">
           <button class="btn btn-secondary" onclick="closeUploadCodesModal()">取消</button>
           <button class="btn btn-primary" onclick="submitUploadCodes()">上傳</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 主動推播發券 Modal -->
+    <div id="push-coupon-modal" class="modal-overlay" style="display:none">
+      <div class="modal-box" style="max-width:560px">
+        <h3>📤 主動推播發券 — <span id="push-activity-name"></span></h3>
+
+        <!-- 目標選擇 -->
+        <div class="form-group">
+          <label>發送目標</label>
+          <div style="display:flex;gap:8px;margin-bottom:10px">
+            <button class="btn btn-secondary btn-sm push-target-tab active" id="tab-audience" onclick="switchPushTab('audience')">選擇受眾</button>
+            <button class="btn btn-secondary btn-sm push-target-tab" id="tab-uids" onclick="switchPushTab('uids')">手動輸入 UID</button>
+          </div>
+
+          <!-- 受眾選擇 -->
+          <div id="push-audience-panel">
+            <select id="push-audience-select" class="form-input">
+              <option value="">-- 載入中 --</option>
+            </select>
+            <div class="form-hint" id="push-audience-hint">選擇受眾後顯示預計人數</div>
+          </div>
+
+          <!-- UID 輸入 -->
+          <div id="push-uids-panel" style="display:none">
+            <textarea id="push-uids-input" class="form-textarea" rows="6"
+              placeholder="每行一個 UID&#10;U1234567890abcdef&#10;U9876543210fedcba"></textarea>
+            <div class="form-hint" id="push-uids-hint">已輸入 0 個 UID</div>
+          </div>
+        </div>
+
+        <!-- 訊息模板 -->
+        <div class="form-group">
+          <label>訊息模板 <span style="color:var(--text-muted);font-size:12px;font-weight:400">（用 {{序號}} 代表每人專屬序號）</span></label>
+          <textarea id="push-message-template" class="form-textarea" rows="5"
+            placeholder="親愛的會員您好！&#10;您的專屬優惠序號為：{{序號}}&#10;請於活動期間內使用，感謝您的支持！"></textarea>
+          <div class="form-hint">{{序號}} 會自動替換為每位用戶的專屬序號</div>
+        </div>
+
+        <!-- 預覽 -->
+        <div id="push-preview" style="display:none;background:var(--bg-secondary);border-radius:8px;padding:12px;margin-bottom:12px;font-size:13px">
+          <div style="font-weight:500;margin-bottom:6px;color:var(--text-secondary)">訊息預覽（序號以範例代替）</div>
+          <div id="push-preview-text" style="white-space:pre-wrap;color:var(--text-primary)"></div>
+        </div>
+
+        <div id="push-summary" class="bc-target-info" style="margin-bottom:12px">請先選擇目標和填寫訊息</div>
+
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closePushCouponModal()">取消</button>
+          <button class="btn btn-primary" onclick="submitPushCoupon()" id="push-coupon-btn" disabled>🚀 確認推播</button>
         </div>
       </div>
     </div>
@@ -358,6 +411,170 @@ async function deleteActivity() {
     document.getElementById('coupon-detail-table').innerHTML = '<p class="empty-tip">從左側選擇活動以查看序號</p>';
     document.getElementById('coupon-pagination').innerHTML = '';
     await refreshCouponActivities();
+  }
+}
+
+
+// ── 主動推播發券 ──────────────────────────────────────
+
+let _pushTab = 'audience';
+
+async function openPushCouponModal() {
+  if (!_selectedActivity) { showToast('請先選擇活動', 'warning'); return; }
+
+  document.getElementById('push-activity-name').textContent = _selectedActivity;
+  document.getElementById('push-message-template').value = '';
+  document.getElementById('push-preview').style.display = 'none';
+  document.getElementById('push-summary').textContent = '請先選擇目標和填寫訊息';
+  document.getElementById('push-summary').className = 'bc-target-info';
+  document.getElementById('push-coupon-btn').disabled = true;
+  document.getElementById('push-uids-input').value = '';
+  document.getElementById('push-uids-hint').textContent = '已輸入 0 個 UID';
+  switchPushTab('audience');
+
+  // 載入受眾下拉選單
+  const sel = document.getElementById('push-audience-select');
+  sel.innerHTML = '<option value="">-- 選擇受眾 --</option>';
+  const res = await apiCall({ action: 'getAudienceForBroadcast' });
+  if (res.success && res.data.list) {
+    res.data.list.forEach(function(a) {
+      const opt = document.createElement('option');
+      opt.value = a.audience_id;
+      opt.textContent = a.keyword + '（' + a.count + ' 人）';
+      sel.appendChild(opt);
+    });
+  }
+
+  sel.onchange = updatePushSummary;
+  document.getElementById('push-message-template').oninput = updatePushPreview;
+  document.getElementById('push-uids-input').oninput = function() {
+    const uids = this.value.split('
+').map(u => u.trim()).filter(u => u);
+    document.getElementById('push-uids-hint').textContent = '已輸入 ' + uids.length + ' 個 UID';
+    updatePushSummary();
+  };
+
+  document.getElementById('push-coupon-modal').style.display = 'flex';
+}
+
+function closePushCouponModal() {
+  document.getElementById('push-coupon-modal').style.display = 'none';
+}
+
+function switchPushTab(tab) {
+  _pushTab = tab;
+  document.getElementById('push-audience-panel').style.display = tab === 'audience' ? 'block' : 'none';
+  document.getElementById('push-uids-panel').style.display     = tab === 'uids'     ? 'block' : 'none';
+  document.querySelectorAll('.push-target-tab').forEach(function(btn) { btn.classList.remove('active'); });
+  document.getElementById('tab-' + tab).classList.add('active');
+  updatePushSummary();
+}
+
+function updatePushPreview() {
+  const tpl = document.getElementById('push-message-template').value || '';
+  const previewEl = document.getElementById('push-preview');
+  const previewText = document.getElementById('push-preview-text');
+  if (!tpl.trim()) { previewEl.style.display = 'none'; return; }
+  previewEl.style.display = 'block';
+  previewText.textContent = tpl.replace(/\{\{序號\}\}/g, 'SAMPLE-CODE-001');
+  updatePushSummary();
+}
+
+function updatePushSummary() {
+  const tpl = (document.getElementById('push-message-template').value || '').trim();
+  const act = _couponActivities.find(function(a) { return a.name === _selectedActivity; });
+  const remaining = act ? act.remaining : 0;
+
+  let targetCount = 0;
+  if (_pushTab === 'audience') {
+    const sel = document.getElementById('push-audience-select');
+    const opt = sel.options[sel.selectedIndex];
+    if (sel.value) {
+      const match = opt.textContent.match(/（(\d+) 人）/);
+      targetCount = match ? parseInt(match[1]) : 0;
+    }
+  } else {
+    const uids = (document.getElementById('push-uids-input').value || '').split('
+').map(u => u.trim()).filter(u => u);
+    targetCount = uids.length;
+  }
+
+  const summaryEl = document.getElementById('push-summary');
+  const btnEl = document.getElementById('push-coupon-btn');
+
+  if (!targetCount || !tpl) {
+    summaryEl.textContent = '請先選擇目標和填寫訊息';
+    summaryEl.className = 'bc-target-info';
+    btnEl.disabled = true;
+    return;
+  }
+
+  if (!tpl.includes('{{序號}}')) {
+    summaryEl.textContent = '⚠️ 訊息模板必須包含 {{序號}}';
+    summaryEl.className = 'bc-target-info';
+    btnEl.disabled = true;
+    return;
+  }
+
+  if (targetCount > remaining) {
+    summaryEl.innerHTML = '⚠️ 剩餘券數不足！目標 <strong>' + targetCount + '</strong> 人，剩餘 <strong>' + remaining + '</strong> 張';
+    summaryEl.className = 'bc-target-info';
+    btnEl.disabled = true;
+    return;
+  }
+
+  if (targetCount > 200) {
+    summaryEl.innerHTML = '⚠️ 單批上限 200 人，請分批發送（目前 <strong>' + targetCount + '</strong> 人）';
+    summaryEl.className = 'bc-target-info';
+    btnEl.disabled = true;
+    return;
+  }
+
+  summaryEl.innerHTML = '目標 <strong>' + targetCount + '</strong> 人，剩餘券 <strong>' + remaining + '</strong> 張，發送後剩 <strong>' + (remaining - targetCount) + '</strong> 張';
+  summaryEl.className = 'bc-target-info selected';
+  btnEl.disabled = false;
+}
+
+async function submitPushCoupon() {
+  const tpl = (document.getElementById('push-message-template').value || '').trim();
+  if (!tpl || !tpl.includes('{{序號}}')) {
+    showToast('訊息模板必須包含 {{序號}}', 'warning');
+    return;
+  }
+
+  const payload = {
+    action: 'pushCoupons',
+    activity_name: _selectedActivity,
+    message_template: tpl
+  };
+
+  if (_pushTab === 'audience') {
+    const audience_id = document.getElementById('push-audience-select').value;
+    if (!audience_id) { showToast('請選擇受眾', 'warning'); return; }
+    payload.audience_id = audience_id;
+  } else {
+    const uids = (document.getElementById('push-uids-input').value || '')
+      .split('
+').map(u => u.trim()).filter(u => u);
+    if (!uids.length) { showToast('請輸入至少一個 UID', 'warning'); return; }
+    payload.uids = uids;
+  }
+
+  const confirmed = await confirmDialog(
+    '確定要推播發券給目標用戶嗎？\n此操作會消耗序號，無法復原。'
+  );
+  if (!confirmed) return;
+
+  const res = await apiCall(payload);
+  if (res.success) {
+    const d = res.data;
+    let msg = '✅ 推播完成！成功 ' + d.success + ' 人';
+    if (d.skipped) msg += '，已領取跳過 ' + d.skipped + ' 人';
+    if (d.fail)    msg += '，失敗 ' + d.fail + ' 人';
+    showToast(msg, 'success');
+    closePushCouponModal();
+    await refreshCouponActivities();
+    loadCouponDetail();
   }
 }
 
