@@ -448,8 +448,7 @@ async function openPushCouponModal() {
   sel.onchange = updatePushSummary;
   document.getElementById('push-message-template').oninput = updatePushPreview;
   document.getElementById('push-uids-input').oninput = function() {
-    const uids = this.value.split('
-').map(u => u.trim()).filter(u => u);
+    const uids = this.value.split('\n').map(function(u){return u.trim();}).filter(function(u){return u;});
     document.getElementById('push-uids-hint').textContent = '已輸入 ' + uids.length + ' 個 UID';
     updatePushSummary();
   };
@@ -494,8 +493,7 @@ function updatePushSummary() {
       targetCount = match ? parseInt(match[1]) : 0;
     }
   } else {
-    const uids = (document.getElementById('push-uids-input').value || '').split('
-').map(u => u.trim()).filter(u => u);
+    const uids = (document.getElementById('push-uids-input').value || '').split('\n').map(function(u){return u.trim();}).filter(function(u){return u;});
     targetCount = uids.length;
   }
 
@@ -554,8 +552,7 @@ async function submitPushCoupon() {
     payload.audience_id = audience_id;
   } else {
     const uids = (document.getElementById('push-uids-input').value || '')
-      .split('
-').map(u => u.trim()).filter(u => u);
+      .split('\n').map(function(u){return u.trim();}).filter(function(u){return u;});
     if (!uids.length) { showToast('請輸入至少一個 UID', 'warning'); return; }
     payload.uids = uids;
   }
