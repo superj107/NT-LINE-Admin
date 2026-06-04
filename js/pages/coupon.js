@@ -48,8 +48,21 @@ async function loadCoupon() {
           <input type="text" id="new-activity-name" class="form-input" placeholder="例：2026暑假折扣碼">
         </div>
         <div class="form-group">
+          <label>觸發關鍵字 <span style="color:var(--text-muted);font-weight:400;font-size:12px">（選填，自動寫入自動回覆設定）</span></label>
+          <input type="text" id="new-activity-keyword" class="form-input" placeholder="例：領取折扣碼">
+          <div class="form-hint">用戶在 LINE 輸入此關鍵字即自動收到序號</div>
+        </div>
+        <div class="form-group" id="new-activity-time-row" style="display:none">
+          <label>發送時段</label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="text" id="new-activity-start" class="form-input" placeholder="0:00" style="width:90px">
+            <span style="color:var(--text-muted)">～</span>
+            <input type="text" id="new-activity-end" class="form-input" placeholder="23:59" style="width:90px">
+          </div>
+        </div>
+        <div class="form-group">
           <label>序號清單（每行一個）</label>
-          <textarea id="new-activity-codes" class="form-textarea" rows="10"
+          <textarea id="new-activity-codes" class="form-textarea" rows="8"
             placeholder="A001&#10;A002&#10;A003"></textarea>
           <div class="form-hint" id="code-count-hint">已輸入 0 個序號</div>
         </div>
@@ -252,6 +265,9 @@ function goCouponPage(page) {
 
 function openCreateActivityModal() {
   document.getElementById('new-activity-name').value = '';
+  document.getElementById('new-activity-keyword').value = '';
+  document.getElementById('new-activity-start').value = '';
+  document.getElementById('new-activity-end').value = '';
   document.getElementById('new-activity-codes').value = '';
   document.getElementById('code-count-hint').textContent = '已輸入 0 個序號';
   document.getElementById('create-activity-modal').style.display = 'flex';
@@ -262,17 +278,34 @@ function closeCreateActivityModal() {
 }
 
 async function submitCreateActivity() {
-  const name = (document.getElementById('new-activity-name').value || '').trim();
-  const raw = document.getElementById('new-activity-codes').value || '';
-  const codes = raw.split('\n').map(c => c.trim()).filter(c => c);
+  const name    = (document.getElementById('new-activity-name').value    || '').trim();
+  const keyword = (document.getElementById('new-activity-keyword').value || '').trim();
+  const start   = (document.getElementById('new-activity-start').value   || '').trim();
+  const end     = (document.getElementById('new-activity-end').value     || '').trim();
+  const raw     = document.getElementById('new-activity-codes').value || '';
+  const codes   = raw.split('\n').map(c => c.trim()).filter(c => c);
 
   if (!name) { showToast('請輸入活動名稱', 'warning'); return; }
   if (!codes.length) { showToast('請輸入至少一個序號', 'warning'); return; }
 
-  const res = await apiCall({ action: 'uploadCoupons', activity_name: name, codes });
+  const payload = {
+    action: 'uploadCoupons',
+    activity_name: name,
+    codes: codes
+  };
+  if (keyword) {
+    payload.keyword    = keyword;
+    payload.start_time = start || '0:00';
+    payload.end_time   = end   || '23:59';
+    payload.days       = '0,1,2,3,4,5,6';
+  }
+
+  const res = await apiCall(payload);
   if (res.success) {
     const d = res.data;
-    showToast(`✅ 新增成功！加入 ${d.added} 個，跳過重複 ${d.skipped} 個`, 'success');
+    let msg = '✅ 新增成功！加入 ' + d.added + ' 個，跳過重複 ' + d.skipped + ' 個';
+    if (d.reply_added) msg += '，已自動新增關鍵字「' + keyword + '」到自動回覆';
+    showToast(msg, 'success');
     closeCreateActivityModal();
     await refreshCouponActivities();
     selectCouponActivity(name);
