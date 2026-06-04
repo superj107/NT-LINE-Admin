@@ -108,18 +108,47 @@ function renderCouponActivities() {
     return;
   }
 
-  el.innerHTML = _couponActivities.map(a => `
-    <div class="coupon-activity-item ${_selectedActivity === a.name ? 'selected' : ''}"
-         id="ca-${encodeURIComponent(a.name)}"
-         onclick="selectCouponActivity('${escapeAttr(a.name)}')">
-      <div class="ca-name">${a.name}</div>
-      <div class="ca-stats">
-        <span class="ca-stat total">共 ${a.total}</span>
-        <span class="ca-stat used">已發 ${a.used}</span>
-        <span class="ca-stat remaining ${a.remaining === 0 ? 'empty' : ''}">剩 ${a.remaining}</span>
-      </div>
-    </div>
-  `).join('');
+  el.innerHTML = _couponActivities.map(function(a) {
+    var isSelected = _selectedActivity === a.name;
+    var isFull     = a.remaining === 0;
+
+    var badgeHtml = '';
+    if (isFull) {
+      badgeHtml = '<span style="font-size:11px;background:#FCEBEB;color:#791F1F;padding:3px 10px;border-radius:20px;font-weight:500;white-space:nowrap">已發完</span>';
+    } else if (a.used === 0) {
+      badgeHtml = '<span style="font-size:11px;background:#EAF3DE;color:#27500A;padding:3px 10px;border-radius:20px;font-weight:500;white-space:nowrap">未開始</span>';
+    } else {
+      badgeHtml = '<span style="font-size:11px;background:#EEEDFE;color:#3C3489;padding:3px 10px;border-radius:20px;font-weight:500;white-space:nowrap">進行中</span>';
+    }
+
+    var remainColor = isFull ? '#A32D2D' : '#27500A';
+    var remainBg    = isFull ? '#FCEBEB' : '#EAF3DE';
+    var remainLabel = isFull ? '#A32D2D' : '#3B6D11';
+    var borderLeft  = isSelected ? '3px solid #534AB7' : '0.5px solid var(--color-border-tertiary)';
+
+    return '<div id="ca-' + encodeURIComponent(a.name) + '"' +
+      ' onclick="selectCouponActivity(\'' + escapeAttr(a.name) + '\')"' +
+      ' style="background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-left:' + borderLeft + ';border-radius:12px;padding:14px 16px;cursor:pointer;margin-bottom:10px;">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">' +
+        '<div style="font-size:15px;font-weight:500;color:var(--color-text-primary)">' + a.name + '</div>' +
+        badgeHtml +
+      '</div>' +
+      '<div style="display:flex;gap:8px">' +
+        '<div style="flex:1;background:var(--color-background-secondary);border-radius:8px;padding:8px 0;text-align:center">' +
+          '<div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:2px">總計</div>' +
+          '<div style="font-size:20px;font-weight:500;color:var(--color-text-primary)">' + a.total + '</div>' +
+        '</div>' +
+        '<div style="flex:1;background:#E6F1FB;border-radius:8px;padding:8px 0;text-align:center">' +
+          '<div style="font-size:11px;color:#185FA5;margin-bottom:2px">已發送</div>' +
+          '<div style="font-size:20px;font-weight:500;color:#0C447C">' + a.used + '</div>' +
+        '</div>' +
+        '<div style="flex:1;background:' + remainBg + ';border-radius:8px;padding:8px 0;text-align:center">' +
+          '<div style="font-size:11px;color:' + remainLabel + ';margin-bottom:2px">剩餘</div>' +
+          '<div style="font-size:20px;font-weight:500;color:' + remainColor + '">' + a.remaining + '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
 }
 
 function selectCouponActivity(name) {
