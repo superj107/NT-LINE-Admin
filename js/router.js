@@ -5,6 +5,7 @@ const PAGES = {
   audience:  { label: '受眾管理', icon: '👥', load: loadAudience  },
   richmenu:  { label: '圖文選單', icon: '🖼️', load: loadRichMenu  },
   broadcast: { label: '推播管理', icon: '📢', load: loadBroadcast },
+  coupon: { label: '優惠券管理', icon: '🎟️', load: loadCoupon },
 };
 
 function navigateTo(page) {
