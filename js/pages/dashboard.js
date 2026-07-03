@@ -88,7 +88,8 @@ function drawLineChart(canvasId, data, color) {
     ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x, y, 2, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = '#888'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
-    ctx.fillText(d.date.slice(-5), x, H - PAD.bottom + 14);
+    var parts = d.date.split('/');
+    ctx.fillText(parts[1] + '/' + parts[2], x, H - PAD.bottom + 14);
   });
 }
 
