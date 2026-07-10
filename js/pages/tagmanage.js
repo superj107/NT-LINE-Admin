@@ -4,6 +4,7 @@
  */
 
 var _tagCatalogData = [];
+var _selectedTagId = null;
 
 function loadTagManage() {
   var html = ''
@@ -16,6 +17,7 @@ function loadTagManage() {
     + '    </div>'
     + '    <input type="text" id="tagCatalogFilter" placeholder="搜尋標籤名稱/分類" oninput="filterTagCatalog()" class="input-search">'
     + '    <div id="tagCatalogList">載入中...</div>'
+    + '    <div id="tagUsersPanel"></div>'
     + '  </div>'
     + '  <div class="tag-manage-col">'
     + '    <h3>使用者標籤查詢</h3>'
@@ -87,18 +89,19 @@ function renderTagCatalogList(list) {
       ? '<span class="badge badge-green">啟用</span>'
       : '<span class="badge badge-gray">停用</span>';
 
-    html += '<tr>'
+    var isSelected = (_selectedTagId === tag.tagId);
+    html += '<tr class="' + (isSelected ? 'tag-row-selected' : '') + '" onclick="viewTagUsers(\'' + tag.tagId + '\', \'' + escHtml(tag.name) + '\')" style="cursor:pointer">'
       + '<td>' + escHtml(tag.name) + '</td>'
       + '<td>' + escHtml(tag.category || '-') + '</td>'
       + '<td>' + statusBadge + '</td>'
       + '<td>' + tag.userCount + '</td>'
       + '<td>'
-      + '<button class="btn-icon" onclick="openEditTagModal(\'' + tag.tagId + '\')">✏️</button>'
+      + '<button class="btn-icon" onclick="event.stopPropagation(); openEditTagModal(\'' + tag.tagId + '\')">✏️</button>'
       + (tag.status === '啟用'
-          ? '<button class="btn-icon" onclick="confirmDeactivateTag(\'' + tag.tagId + '\', \'' + escHtml(tag.name) + '\')">🚫</button>'
+          ? '<button class="btn-icon" onclick="event.stopPropagation(); confirmDeactivateTag(\'' + tag.tagId + '\', \'' + escHtml(tag.name) + '\')">🚫</button>'
           : '')
       + (tag.userCount === 0
-          ? '<button class="btn-icon" onclick="confirmDeleteTag(\'' + tag.tagId + '\', \'' + escHtml(tag.name) + '\')">🗑️</button>'
+          ? '<button class="btn-icon" onclick="event.stopPropagation(); confirmDeleteTag(\'' + tag.tagId + '\', \'' + escHtml(tag.name) + '\')">🗑️</button>'
           : '')
       + '</td>'
       + '</tr>';
@@ -106,6 +109,46 @@ function renderTagCatalogList(list) {
 
   html += '</tbody></table>';
   document.getElementById('tagCatalogList').innerHTML = html;
+}
+
+function viewTagUsers(tagId, tagName) {
+  _selectedTagId = tagId;
+  renderTagCatalogList(_tagCatalogData); // 重繪列表，讓選中列高亮
+
+  showLoading();
+  apiCall({ action: 'getTagUsers', tagId: tagId }).then(function (res) {
+    hideLoading();
+    if (!res.success) {
+      showToast('讀取失敗：' + res.message, 'error');
+      return;
+    }
+    renderTagUsersPanel(res.data.tagName, res.data.list);
+  }).catch(function (err) {
+    hideLoading();
+    showToast('讀取發生錯誤', 'error');
+  });
+}
+
+function renderTagUsersPanel(tagName, list) {
+  var html = '<div class="tag-users-panel">'
+    + '<h4>「' + escHtml(tagName) + '」的使用者（共 ' + list.length + ' 人）</h4>';
+
+  if (list.length === 0) {
+    html += '<p class="empty-hint">目前沒有使用者掛這個標籤</p>';
+  } else {
+    html += '<ul class="user-search-list">';
+    for (var i = 0; i < list.length; i++) {
+      var u = list[i];
+      html += '<li onclick="loadUserTagDetail(\'' + u.userId + '\')">'
+        + escHtml(u.displayName || '(無名稱)')
+        + ' <span class="user-id-hint">' + escHtml(u.userId) + '</span>'
+        + '</li>';
+    }
+    html += '</ul>';
+  }
+
+  html += '</div>';
+  document.getElementById('tagUsersPanel').innerHTML = html;
 }
 
 function filterTagCatalog() {
