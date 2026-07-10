@@ -8,7 +8,7 @@ var _selectedTagId = null;
 
 function loadTagManage() {
   var html = ''
-    + '<div class="page-header"><h2>標籤管理</h2></div>'
+    + '<h2 class="page-title">標籤管理</h2>'
     + '<div class="tag-manage-layout">'
     + '  <div class="tag-manage-col">'
     + '    <div class="card-header-row">'
@@ -35,7 +35,7 @@ function loadTagManage() {
 function _buildTagModalHtml() {
   return ''
     + '<div id="tagModal" class="modal-overlay" style="display:none;">'
-    + '  <div class="modal-box">'
+    + '  <div class="modal">'
     + '    <h3 id="tagModalTitle">新增標籤</h3>'
     + '    <input type="hidden" id="tagModalTagId">'
     + '    <label>標籤名稱</label>'
@@ -49,8 +49,8 @@ function _buildTagModalHtml() {
     + '    </select>'
     + '    <label>備註</label>'
     + '    <input type="text" id="tagModalNote" class="input-full">'
-    + '    <div class="modal-actions">'
-    + '      <button class="btn" onclick="closeModal(\'tagModal\')">取消</button>'
+    + '    <div class="modal-footer">'
+    + '      <button class="btn-cancel" onclick="closeModal(\'tagModal\')">取消</button>'
     + '      <button class="btn btn-primary" onclick="submitTagModal()">儲存</button>'
     + '    </div>'
     + '  </div>'
