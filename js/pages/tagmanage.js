@@ -79,7 +79,7 @@ function renderTagCatalogList(list) {
     return;
   }
 
-  var html = '<table class="tag-table"><thead><tr>'
+  var html = '<table><thead><tr>'
     + '<th>標籤名稱</th><th>分類</th><th>狀態</th><th>使用人數</th><th>操作</th>'
     + '</tr></thead><tbody>';
 
