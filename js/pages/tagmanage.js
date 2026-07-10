@@ -75,7 +75,7 @@ function loadTagCatalogList() {
 
 function renderTagCatalogList(list) {
   if (!list || list.length === 0) {
-    document.getElementById('tagCatalogList').innerHTML = '<p class="empty-hint">目前沒有標籤，點右上角新增</p>';
+    document.getElementById('tagCatalogList').innerHTML = '<p class="empty">目前沒有標籤，點右上角新增</p>';
     return;
   }
 
@@ -134,7 +134,7 @@ function renderTagUsersPanel(tagName, list) {
     + '<h4>「' + escHtml(tagName) + '」的使用者（共 ' + list.length + ' 人）</h4>';
 
   if (list.length === 0) {
-    html += '<p class="empty-hint">目前沒有使用者掛這個標籤</p>';
+    html += '<p class="empty">目前沒有使用者掛這個標籤</p>';
   } else {
     html += '<ul class="user-search-list">';
     for (var i = 0; i < list.length; i++) {
@@ -279,7 +279,7 @@ function searchTagUsers() {
 
 function renderUserSearchResults(list) {
   if (!list || list.length === 0) {
-    document.getElementById('userSearchResults').innerHTML = '<p class="empty-hint">找不到符合的使用者</p>';
+    document.getElementById('userSearchResults').innerHTML = '<p class="empty">找不到符合的使用者</p>';
     return;
   }
   var html = '<ul class="user-search-list">';
@@ -311,7 +311,7 @@ function loadUserTagDetail(userId) {
 function renderUserTagDetail(user, tags) {
   var tagChips = '';
   if (tags.length === 0) {
-    tagChips = '<p class="empty-hint">目前沒有任何標籤</p>';
+    tagChips = '<p class="empty">目前沒有任何標籤</p>';
   } else {
     tagChips = '<div class="tag-chips">';
     for (var i = 0; i < tags.length; i++) {
