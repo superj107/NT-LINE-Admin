@@ -97,6 +97,9 @@ function renderTagCatalogList(list) {
       + (tag.status === '啟用'
           ? '<button class="btn-icon" onclick="confirmDeactivateTag(\'' + tag.tagId + '\', \'' + escHtml(tag.name) + '\')">🚫</button>'
           : '')
+      + (tag.userCount === 0
+          ? '<button class="btn-icon" onclick="confirmDeleteTag(\'' + tag.tagId + '\', \'' + escHtml(tag.name) + '\')">🗑️</button>'
+          : '')
       + '</td>'
       + '</tr>';
   }
@@ -189,6 +192,25 @@ function confirmDeactivateTag(tagId, tagName) {
     } catch (err) {
       hideLoading();
       showToast('停用發生錯誤', 'error');
+    }
+  });
+}
+
+function confirmDeleteTag(tagId, tagName) {
+  confirmAndRun('確定要「永久刪除」標籤「' + tagName + '」嗎？這個動作無法復原（僅限無人使用的標籤才能刪除）。', async function () {
+    showLoading();
+    try {
+      var res = await apiCall({ action: 'deleteTag', tagId: tagId });
+      hideLoading();
+      if (!res.success) {
+        showToast('刪除失敗：' + res.message, 'error');
+        return;
+      }
+      showToast('已刪除', 'success');
+      loadTagCatalogList();
+    } catch (err) {
+      hideLoading();
+      showToast('刪除發生錯誤', 'error');
     }
   });
 }
