@@ -26,7 +26,26 @@ function loadTagManage() {
     + '    <div id="userTagDetail"></div>'
     + '  </div>'
     + '</div>'
-    + _buildTagModalHtml();
+    + _buildTagModalHtml()
+    + _buildCreateAudienceModalHtml();
+
+
+function _buildCreateAudienceModalHtml() {
+  return ''
+    + '<div id="createAudienceModal" class="modal-overlay" style="display:none;">'
+    + '  <div class="modal">'
+    + '    <h3>建立為受眾</h3>'
+    + '    <input type="hidden" id="createAudienceTagId">'
+    + '    <p id="createAudienceTagInfo" style="color:#666;font-size:13px;margin-bottom:12px;"></p>'
+    + '    <label>受眾名稱</label>'
+    + '    <input type="text" id="createAudienceName" class="input-full" placeholder="例如：01.蘆洲區_2026年7月">'
+    + '    <div class="modal-footer">'
+    + '      <button class="btn-cancel" onclick="closeModal(\'createAudienceModal\')">取消</button>'
+    + '      <button class="btn btn-primary" onclick="submitCreateAudienceFromTag()">建立受眾</button>'
+    + '    </div>'
+    + '  </div>'
+    + '</div>';
+}  
 
   setContent(html);
   loadTagCatalogList();
@@ -131,7 +150,13 @@ function viewTagUsers(tagId, tagName) {
 
 function renderTagUsersPanel(tagName, list) {
   var html = '<div class="tag-users-panel">'
-    + '<h4>「' + escHtml(tagName) + '」的使用者（共 ' + list.length + ' 人）</h4>';
+    + '<div class="card-header-row">'
+    + '<h4>「' + escHtml(tagName) + '」的使用者（共 ' + list.length + ' 人）</h4>'
+    + (list.length > 0
+        ? '<button class="btn btn-primary" onclick="openCreateAudienceModal(\'' + _selectedTagId + '\', \'' + escHtml(tagName) + '\', ' + list.length + ')">建立為受眾</button>'
+        : '')
+    + '</div>';
+  
 
   if (list.length === 0) {
     html += '<p class="empty">目前沒有使用者掛這個標籤</p>';
@@ -149,6 +174,38 @@ function renderTagUsersPanel(tagName, list) {
 
   html += '</div>';
   document.getElementById('tagUsersPanel').innerHTML = html;
+}
+
+function openCreateAudienceModal(tagId, tagName, userCount) {
+  document.getElementById('createAudienceTagId').value = tagId;
+  document.getElementById('createAudienceTagInfo').textContent =
+    '將把「' + tagName + '」目前的 ' + userCount + ' 位使用者，建立成一個新的受眾（會直接寫入 LINE 平台）';
+  document.getElementById('createAudienceName').value = tagName + '_' + formatDate(new Date());
+  openModal('createAudienceModal');
+}
+
+function submitCreateAudienceFromTag() {
+  var tagId = document.getElementById('createAudienceTagId').value;
+  var audienceName = document.getElementById('createAudienceName').value.trim();
+
+  if (!audienceName) {
+    showToast('請填入受眾名稱', 'error');
+    return;
+  }
+
+  showLoading();
+  apiCall({ action: 'createAudienceFromTag', tagId: tagId, audienceName: audienceName }).then(function (res) {
+    hideLoading();
+    if (!res.success) {
+      showToast('建立失敗：' + res.message, 'error');
+      return;
+    }
+    showToast('受眾建立成功！共匯入 ' + res.data.count + ' 位使用者', 'success');
+    closeModal('createAudienceModal');
+  }).catch(function (err) {
+    hideLoading();
+    showToast('建立發生錯誤', 'error');
+  });
 }
 
 function filterTagCatalog() {
