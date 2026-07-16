@@ -153,10 +153,9 @@ function renderTagUsersPanel(tagName, list) {
     + '<div class="card-header-row">'
     + '<h4>「' + escHtml(tagName) + '」的使用者（共 ' + list.length + ' 人）</h4>'
     + (list.length > 0
-        ? '<button class="btn btn-primary" onclick="openCreateAudienceModal(\'' + _selectedTagId + '\', \'' + escHtml(tagName) + '\', ' + list.length + ')">建立為受眾</button>'
-        : '')
-    + '</div>';
-  
+        ? '<button class="btn btn-primary" onclick="openCreateAudienceFromTagModal(\'' + _selectedTagId + '\', \'' + escHtml(tagName) + '\', ' + list.length + ')">建立為受眾</button>'
+            + '</div>';
+          
 
   if (list.length === 0) {
     html += '<p class="empty">目前沒有使用者掛這個標籤</p>';
@@ -176,7 +175,7 @@ function renderTagUsersPanel(tagName, list) {
   document.getElementById('tagUsersPanel').innerHTML = html;
 }
 
-function openCreateAudienceModal(tagId, tagName, userCount) {
+function openCreateAudienceFromTagModal(tagId, tagName, userCount) {
   document.getElementById('createAudienceTagId').value = tagId;
   document.getElementById('createAudienceTagInfo').textContent =
     '將把「' + tagName + '」目前的 ' + userCount + ' 位使用者，建立成一個新的受眾（會直接寫入 LINE 平台）';
