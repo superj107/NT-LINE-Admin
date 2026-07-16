@@ -1,6 +1,6 @@
 /**
  * pages/tagmanage.js
- * 標籤管理頁面：標籤主檔管理 + 使用者標籤查詢/編輯
+ * 標籤管理頁面：標籤主檔管理 + 使用者標籤查詢/編輯 + 從標籤建立受眾
  */
 
 var _tagCatalogData = [];
@@ -29,24 +29,6 @@ function loadTagManage() {
     + _buildTagModalHtml()
     + _buildCreateAudienceModalHtml();
 
-
-function _buildCreateAudienceModalHtml() {
-  return ''
-    + '<div id="createAudienceModal" class="modal-overlay" style="display:none;">'
-    + '  <div class="modal">'
-    + '    <h3>建立為受眾</h3>'
-    + '    <input type="hidden" id="createAudienceTagId">'
-    + '    <p id="createAudienceTagInfo" style="color:#666;font-size:13px;margin-bottom:12px;"></p>'
-    + '    <label>受眾名稱</label>'
-    + '    <input type="text" id="createAudienceName" class="input-full" placeholder="例如：01.蘆洲區_2026年7月">'
-    + '    <div class="modal-footer">'
-    + '      <button class="btn-cancel" onclick="closeModal(\'createAudienceModal\')">取消</button>'
-    + '      <button class="btn btn-primary" onclick="submitCreateAudienceFromTag()">建立受眾</button>'
-    + '    </div>'
-    + '  </div>'
-    + '</div>';
-}  
-
   setContent(html);
   loadTagCatalogList();
 }
@@ -71,6 +53,23 @@ function _buildTagModalHtml() {
     + '    <div class="modal-footer">'
     + '      <button class="btn-cancel" onclick="closeModal(\'tagModal\')">取消</button>'
     + '      <button class="btn btn-primary" onclick="submitTagModal()">儲存</button>'
+    + '    </div>'
+    + '  </div>'
+    + '</div>';
+}
+
+function _buildCreateAudienceModalHtml() {
+  return ''
+    + '<div id="createAudienceModal" class="modal-overlay" style="display:none;">'
+    + '  <div class="modal">'
+    + '    <h3>建立為受眾</h3>'
+    + '    <input type="hidden" id="createAudienceTagId">'
+    + '    <p id="createAudienceTagInfo" style="color:#666;font-size:13px;margin-bottom:12px;"></p>'
+    + '    <label>受眾名稱</label>'
+    + '    <input type="text" id="createAudienceName" class="input-full" placeholder="例如：01.蘆洲區_2026年7月">'
+    + '    <div class="modal-footer">'
+    + '      <button class="btn-cancel" onclick="closeModal(\'createAudienceModal\')">取消</button>'
+    + '      <button class="btn btn-primary" onclick="submitCreateAudienceFromTag()">建立受眾</button>'
     + '    </div>'
     + '  </div>'
     + '</div>';
@@ -104,11 +103,11 @@ function renderTagCatalogList(list) {
 
   for (var i = 0; i < list.length; i++) {
     var tag = list[i];
+    var isSelected = (_selectedTagId === tag.tagId);
     var statusBadge = tag.status === '啟用'
       ? '<span class="badge badge-green">啟用</span>'
       : '<span class="badge badge-gray">停用</span>';
 
-    var isSelected = (_selectedTagId === tag.tagId);
     html += '<tr class="' + (isSelected ? 'tag-row-selected' : '') + '" onclick="viewTagUsers(\'' + tag.tagId + '\', \'' + escHtml(tag.name) + '\')" style="cursor:pointer">'
       + '<td>' + escHtml(tag.name) + '</td>'
       + '<td>' + escHtml(tag.category || '-') + '</td>'
@@ -128,83 +127,6 @@ function renderTagCatalogList(list) {
 
   html += '</tbody></table>';
   document.getElementById('tagCatalogList').innerHTML = html;
-}
-
-function viewTagUsers(tagId, tagName) {
-  _selectedTagId = tagId;
-  renderTagCatalogList(_tagCatalogData); // 重繪列表，讓選中列高亮
-
-  showLoading();
-  apiCall({ action: 'getTagUsers', tagId: tagId }).then(function (res) {
-    hideLoading();
-    if (!res.success) {
-      showToast('讀取失敗：' + res.message, 'error');
-      return;
-    }
-    renderTagUsersPanel(res.data.tagName, res.data.list);
-  }).catch(function (err) {
-    hideLoading();
-    showToast('讀取發生錯誤', 'error');
-  });
-}
-
-function renderTagUsersPanel(tagName, list) {
-  var html = '<div class="tag-users-panel">'
-    + '<div class="card-header-row">'
-    + '<h4>「' + escHtml(tagName) + '」的使用者（共 ' + list.length + ' 人）</h4>'
-    + (list.length > 0
-        ? '<button class="btn btn-primary" onclick="openCreateAudienceFromTagModal(\'' + _selectedTagId + '\', \'' + escHtml(tagName) + '\', ' + list.length + ')">建立為受眾</button>'
-            + '</div>';
-          
-
-  if (list.length === 0) {
-    html += '<p class="empty">目前沒有使用者掛這個標籤</p>';
-  } else {
-    html += '<ul class="user-search-list">';
-    for (var i = 0; i < list.length; i++) {
-      var u = list[i];
-      html += '<li onclick="loadUserTagDetail(\'' + u.userId + '\')">'
-        + escHtml(u.displayName || '(無名稱)')
-        + ' <span class="user-id-hint">' + escHtml(u.userId) + '</span>'
-        + '</li>';
-    }
-    html += '</ul>';
-  }
-
-  html += '</div>';
-  document.getElementById('tagUsersPanel').innerHTML = html;
-}
-
-function openCreateAudienceFromTagModal(tagId, tagName, userCount) {
-  document.getElementById('createAudienceTagId').value = tagId;
-  document.getElementById('createAudienceTagInfo').textContent =
-    '將把「' + tagName + '」目前的 ' + userCount + ' 位使用者，建立成一個新的受眾（會直接寫入 LINE 平台）';
-  document.getElementById('createAudienceName').value = tagName + '_' + formatDate(new Date());
-  openModal('createAudienceModal');
-}
-
-function submitCreateAudienceFromTag() {
-  var tagId = document.getElementById('createAudienceTagId').value;
-  var audienceName = document.getElementById('createAudienceName').value.trim();
-
-  if (!audienceName) {
-    showToast('請填入受眾名稱', 'error');
-    return;
-  }
-
-  showLoading();
-  apiCall({ action: 'createAudienceFromTag', tagId: tagId, audienceName: audienceName }).then(function (res) {
-    hideLoading();
-    if (!res.success) {
-      showToast('建立失敗：' + res.message, 'error');
-      return;
-    }
-    showToast('受眾建立成功！共匯入 ' + res.data.count + ' 位使用者', 'success');
-    closeModal('createAudienceModal');
-  }).catch(function (err) {
-    hideLoading();
-    showToast('建立發生錯誤', 'error');
-  });
 }
 
 function filterTagCatalog() {
@@ -311,6 +233,87 @@ function confirmDeleteTag(tagId, tagName) {
       hideLoading();
       showToast('刪除發生錯誤', 'error');
     }
+  });
+}
+
+// ===== 標籤使用者清單區 =====
+
+function viewTagUsers(tagId, tagName) {
+  _selectedTagId = tagId;
+  renderTagCatalogList(_tagCatalogData); // 重繪列表，讓選中列高亮
+
+  showLoading();
+  apiCall({ action: 'getTagUsers', tagId: tagId }).then(function (res) {
+    hideLoading();
+    if (!res.success) {
+      showToast('讀取失敗：' + res.message, 'error');
+      return;
+    }
+    renderTagUsersPanel(res.data.tagName, res.data.list);
+  }).catch(function (err) {
+    hideLoading();
+    showToast('讀取發生錯誤', 'error');
+  });
+}
+
+function renderTagUsersPanel(tagName, list) {
+  var html = '<div class="tag-users-panel">'
+    + '<div class="card-header-row">'
+    + '<h4>「' + escHtml(tagName) + '」的使用者（共 ' + list.length + ' 人）</h4>'
+    + (list.length > 0
+        ? '<button class="btn btn-primary" onclick="openCreateAudienceFromTagModal(\'' + _selectedTagId + '\', \'' + escHtml(tagName) + '\', ' + list.length + ')">建立為受眾</button>'
+        : '')
+    + '</div>';
+
+  if (list.length === 0) {
+    html += '<p class="empty">目前沒有使用者掛這個標籤</p>';
+  } else {
+    html += '<ul class="user-search-list">';
+    for (var i = 0; i < list.length; i++) {
+      var u = list[i];
+      html += '<li onclick="loadUserTagDetail(\'' + u.userId + '\')">'
+        + escHtml(u.displayName || '(無名稱)')
+        + ' <span class="user-id-hint">' + escHtml(u.userId) + '</span>'
+        + '</li>';
+    }
+    html += '</ul>';
+  }
+
+  html += '</div>';
+  document.getElementById('tagUsersPanel').innerHTML = html;
+}
+
+// ===== 從標籤建立受眾 =====
+
+function openCreateAudienceFromTagModal(tagId, tagName, userCount) {
+  document.getElementById('createAudienceTagId').value = tagId;
+  document.getElementById('createAudienceTagInfo').textContent =
+    '將把「' + tagName + '」目前的 ' + userCount + ' 位使用者，建立成一個新的受眾（會直接寫入 LINE 平台）';
+  document.getElementById('createAudienceName').value = tagName + '_' + formatDate(new Date());
+  openModal('createAudienceModal');
+}
+
+function submitCreateAudienceFromTag() {
+  var tagId = document.getElementById('createAudienceTagId').value;
+  var audienceName = document.getElementById('createAudienceName').value.trim();
+
+  if (!audienceName) {
+    showToast('請填入受眾名稱', 'error');
+    return;
+  }
+
+  showLoading();
+  apiCall({ action: 'createAudienceFromTag', tagId: tagId, audienceName: audienceName }).then(function (res) {
+    hideLoading();
+    if (!res.success) {
+      showToast('建立失敗：' + res.message, 'error');
+      return;
+    }
+    showToast('受眾建立成功！共匯入 ' + res.data.count + ' 位使用者', 'success');
+    closeModal('createAudienceModal');
+  }).catch(function (err) {
+    hideLoading();
+    showToast('建立發生錯誤', 'error');
   });
 }
 
