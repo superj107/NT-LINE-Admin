@@ -84,6 +84,24 @@ function renderAudiencePage(richMenus) {
       </div>
     </div>
 
+    <!-- 查看受眾成員 Modal -->
+    <div class="modal-overlay" id="audienceMembersModal">
+      <div class="modal">
+        <h3 id="membersModalTitle">受眾成員</h3>
+        <div id="membersModalCount" style="color:#888;font-size:13px;margin-bottom:12px"></div>
+        <div style="max-height:400px;overflow-y:auto">
+          <table>
+            <thead><tr><th>UserID</th><th>顯示名稱</th><th>電話</th><th>觸發關鍵字</th></tr></thead>
+            <tbody id="membersModalTbody"></tbody>
+          </table>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-cancel" onclick="closeAudienceMembersModal()">關閉</button>
+        </div>
+      </div>
+    </div>
+    
+
     <!-- 匯入 UID Modal -->
     <div class="modal-overlay" id="importModal">
       <div class="modal">
@@ -167,6 +185,7 @@ function refreshAudienceTable() {
       <td>${rmName}</td>
       <td>
         <button class="btn btn-edit" onclick="editAudience(${row.index},'${encodeURIComponent(JSON.stringify(row))}')">編輯</button>
+        <button class="btn btn-sync" onclick="viewAudienceMembers('${row.audience_id}','${encodeURIComponent(row.chat_tag || row.keyword || '')}')">查看成員</button>
         <button class="btn btn-sync" onclick="syncCount('${row.audience_id}',${row.index})">同步</button>
         <button class="btn btn-primary" onclick="openImportModal('${row.audience_id}','${row.chat_tag || row.keyword}')">匯入UID</button>
         ${row.rich_menu_id ? `<button class="btn btn-sync" style="background:#e8f0fe;color:#3b5bdb" onclick="applyRichMenu('${row.audience_id}','${row.rich_menu_id}')">套用選單</button>` : ''}
@@ -347,4 +366,37 @@ async function deleteAudienceRow(audienceId, index) {
   } else {
     showToast(res.message || '刪除失敗', 'error');
   }
+}
+
+// ===== 查看受眾成員 =====
+async function viewAudienceMembers(audienceId, encodedName) {
+  const name = decodeURIComponent(encodedName || '') || audienceId;
+  document.getElementById('membersModalTitle').textContent = '受眾成員：' + name;
+  document.getElementById('membersModalCount').textContent = '載入中...';
+  document.getElementById('membersModalTbody').innerHTML = '';
+  document.getElementById('audienceMembersModal').classList.add('show');
+
+  const res = await apiCall({ action: 'getAudienceMembers', audience_id: audienceId });
+  if (!res.success) {
+    document.getElementById('membersModalCount').textContent = '載入失敗：' + res.message;
+    return;
+  }
+
+  const list = res.data.list || [];
+  document.getElementById('membersModalCount').textContent = '共 ' + list.length + ' 人';
+
+  const rows = list.map(function(m) {
+    return `<tr>
+      <td style="font-size:12px;color:#888">${m.userId}</td>
+      <td>${m.displayName || '-'}</td>
+      <td>${m.phone || '-'}</td>
+      <td>${m.keyword || '-'}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('membersModalTbody').innerHTML = rows || '<tr><td colspan="4" class="empty">尚無成員</td></tr>';
+}
+
+function closeAudienceMembersModal() {
+  document.getElementById('audienceMembersModal').classList.remove('show');
 }
