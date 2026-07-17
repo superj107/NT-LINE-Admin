@@ -163,18 +163,26 @@
   <!-- 載入中 -->
   <div id="loadingPage" class="loading">載入中...</div>
 
-  <!-- 摘要頁（預設畫面） -->
+  <!-- 已同意過（新增） -->
+  <div id="alreadyAgreedPage" class="status-page">
+    <div class="status-icon">✅</div>
+    <div class="status-title">您已同意過個資使用條款</div>
+    <div class="status-desc">不需要重複簽署，可以直接關閉此頁面。</div>
+    <button class="btn" style="width:auto;padding:12px 32px;" onclick="closeLiff()">關閉視窗</button>
+  </div>
+
+  <!-- 摘要頁 -->
   <div id="summaryPage" class="page">
     <div class="org">中華電信股份有限公司新北營運處</div>
     <h1>個人資料使用同意</h1>
 
-  <div class="summary-list" id="summaryList">
-    <div class="summary-item"><span class="dot">●</span><span>我們蒐集您的個人資料，是為了提供本服務相關功能，例如活動通知、優惠推播、客戶管理及法規遵循等用途。</span></div>
-    <div class="summary-item"><span class="dot">●</span><span>蒐集的資料類別包含您提供的姓名、聯絡方式等基本資料，以及您使用本服務過程中產生的資訊。</span></div>
-    <div class="summary-item"><span class="dot">●</span><span>資料僅於台灣地區利用；若涉及 LINE 官方（LY Corporation）相關服務，則依其隱私權政策處理，保存期限最長為五年。</span></div>
-    <div class="summary-item"><span class="dot">●</span><span>您隨時可以查詢、更正或請求刪除您的個人資料，詳細行使方式請見完整條款第七、八條。</span></div>
-    <div class="summary-item"><span class="dot">●</span><span>您可自由選擇是否提供資料，但部分必要欄位若未填寫，可能無法使用本服務或收到相關通知。</span></div>
-  </div>
+    <div class="summary-list" id="summaryList">
+      <div class="summary-item"><span class="dot">●</span><span>我們蒐集您的個人資料，是為了提供本服務相關功能，例如活動通知、優惠推播、客戶管理及法規遵循等用途。</span></div>
+      <div class="summary-item"><span class="dot">●</span><span>蒐集的資料類別包含您提供的姓名、聯絡方式等基本資料，以及您使用本服務過程中產生的資訊。</span></div>
+      <div class="summary-item"><span class="dot">●</span><span>資料僅於台灣地區利用；若涉及 LINE 官方（LY Corporation）相關服務，則依其隱私權政策處理，保存期限最長為五年。</span></div>
+      <div class="summary-item"><span class="dot">●</span><span>您隨時可以查詢、更正或請求刪除您的個人資料，詳細行使方式請見完整條款第七、八條。</span></div>
+      <div class="summary-item"><span class="dot">●</span><span>您可自由選擇是否提供資料，但部分必要欄位若未填寫，可能無法使用本服務或收到相關通知。</span></div>
+    </div>
 
     <div class="link-row">
       <a href="javascript:void(0)" onclick="showFullTerms()">查看完整條款 →</a>
@@ -252,19 +260,37 @@
     }
   }
 
+  function callGas(payload) {
+    return fetch(GAS_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' }, // 用 text/plain 避免瀏覽器發送 CORS preflight
+      body: JSON.stringify(payload)
+    }).then(function(res) { return res.json(); });
+  }
+
+  // 送出同意前，先嘗試代替用戶在聊天室留下文字紀錄
+  // 需要 LIFF App 的 Scope 已勾選 chat_message.write，否則此步驟會失敗但不影響主流程
+  function sendUserSideRecord() {
+    return liff.sendMessages([
+      { type: "text", text: "我已閱讀並同意個資使用條款" }
+    ]).catch(function(err) {
+      console.log("liff.sendMessages 失敗（可能未開放 chat_message.write 權限或非聊天室內開啟）：", err);
+      // 不 throw，讓主流程繼續往下走，不因為這步失敗而卡住整體同意流程
+    });
+  }
+
   function submitConsent() {
     showPage('submittingPage');
 
-    fetch(GAS_WEBHOOK_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' }, // 用 text/plain 避免瀏覽器發送 CORS preflight
-      body: JSON.stringify({
-        action: 'liff_consent_agree',
-        userId: currentUserId,
-        displayName: currentDisplayName
+    Promise.resolve()
+      .then(sendUserSideRecord)
+      .then(function() {
+        return callGas({
+          action: 'liff_consent_agree',
+          userId: currentUserId,
+          displayName: currentDisplayName
+        });
       })
-    })
-      .then(function(res) { return res.json(); })
       .then(function(data) {
         if (data.success) {
           showPage('donePage');
@@ -292,8 +318,17 @@
         if (!profile) return;
         currentUserId = profile.userId;
         currentDisplayName = profile.displayName || "未知";
+
+        // 先查詢是否已同意過，避免重複要求簽署
+        return callGas({ action: 'liff_check_status', userId: currentUserId });
+      })
+      .then(function(statusRes) {
         document.getElementById('loadingPage').style.display = 'none';
-        showSummary();
+        if (statusRes && statusRes.success && statusRes.consented) {
+          showPage('alreadyAgreedPage');
+        } else {
+          showSummary();
+        }
       })
       .catch(function(err) {
         document.getElementById('loadingPage').textContent = '頁面載入失敗，請重新開啟。';
