@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>個資使用同意</title>
+<script charset="utf-8" src="https://static.line-scdn.net/liff/edge/versions/2.24.0/sdk.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    margin: 0;
+    padding: 0;
+    color: #2b2b2b;
+    background: #fff;
+  }
+  .page {
+    display: none;
+    padding: 20px 18px 100px;
+    min-height: 100vh;
+  }
+  .page.active { display: block; }
+
+  h1 {
+    font-size: 18px;
+    margin: 4px 0 4px;
+  }
+  .org {
+    font-size: 12.5px;
+    color: #888;
+    margin-bottom: 18px;
+  }
+
+  .summary-list {
+    background: #f7f8fa;
+    border-radius: 10px;
+    padding: 16px 16px 14px;
+    margin-bottom: 16px;
+  }
+  .summary-item {
+    display: flex;
+    gap: 8px;
+    font-size: 14.5px;
+    line-height: 1.7;
+    margin-bottom: 10px;
+  }
+  .summary-item:last-child { margin-bottom: 0; }
+  .summary-item .dot {
+    color: #06C755;
+    flex-shrink: 0;
+  }
+
+  .link-row {
+    text-align: center;
+    margin: 18px 0 24px;
+  }
+  .link-row a {
+    color: #06C755;
+    font-size: 14.5px;
+    font-weight: 600;
+    text-decoration: underline;
+  }
+
+  .checkbox-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 14px;
+    background: #f7f8fa;
+    border-radius: 10px;
+    margin-bottom: 20px;
+  }
+  .checkbox-row input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    margin-top: 1px;
+    flex-shrink: 0;
+    accent-color: #06C755;
+  }
+  .checkbox-row label {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .btn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    background: #06C755;
+    cursor: pointer;
+  }
+  .btn:disabled {
+    background: #cfd4d1;
+    cursor: not-allowed;
+  }
+  .btn-secondary {
+    background: #fff;
+    color: #444;
+    border: 1px solid #ddd;
+  }
+
+  .back-row {
+    margin-bottom: 14px;
+  }
+  .back-row button {
+    background: none;
+    border: none;
+    color: #06C755;
+    font-size: 14.5px;
+    font-weight: 600;
+    padding: 0;
+    cursor: pointer;
+  }
+
+  .full-terms iframe {
+    width: 100%;
+    height: 65vh;
+    border: 1px solid #eee;
+    border-radius: 8px;
+  }
+
+  .status-page {
+    display: none;
+    min-height: 100vh;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    text-align: center;
+    padding: 40px 24px;
+  }
+  .status-page.active { display: flex; }
+  .status-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+  }
+  .status-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .status-desc {
+    font-size: 14px;
+    color: #777;
+    margin-bottom: 24px;
+  }
+
+  .loading {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #999;
+    font-size: 14px;
+  }
+</style>
+</head>
+<body>
+
+  <!-- 載入中 -->
+  <div id="loadingPage" class="loading">載入中...</div>
+
+  <!-- 摘要頁（預設畫面） -->
+  <div id="summaryPage" class="page">
+    <div class="org">中華電信股份有限公司新北營運處</div>
+    <h1>個人資料使用同意</h1>
+
+    <div class="summary-list" id="summaryList">
+      <!-- 摘要重點（待補），先放佔位內容 -->
+      <div class="summary-item"><span class="dot">●</span><span>(待補) 摘要重點一</span></div>
+      <div class="summary-item"><span class="dot">●</span><span>(待補) 摘要重點二</span></div>
+      <div class="summary-item"><span class="dot">●</span><span>(待補) 摘要重點三</span></div>
+    </div>
+
+    <div class="link-row">
+      <a href="javascript:void(0)" onclick="showFullTerms()">查看完整條款 →</a>
+    </div>
+
+    <div class="checkbox-row">
+      <input type="checkbox" id="agreeCheckbox" onchange="onCheckboxChange()">
+      <label for="agreeCheckbox">我已閱讀並同意上述「個人資料蒐集、處理及利用告知聲明」內容</label>
+    </div>
+
+    <button class="btn" id="agreeBtn" disabled onclick="submitConsent()">確認同意</button>
+  </div>
+
+  <!-- 完整條款頁 -->
+  <div id="fullTermsPage" class="page full-terms">
+    <div class="back-row">
+      <button onclick="showSummary()">← 返回</button>
+    </div>
+    <h1>個人資料蒐集、處理及利用告知聲明</h1>
+    <iframe src="privacy.html" title="個資條款全文"></iframe>
+    <div style="margin-top:16px;">
+      <button class="btn btn-secondary" onclick="showSummary()">返回同意頁面</button>
+    </div>
+  </div>
+
+  <!-- 送出中 -->
+  <div id="submittingPage" class="status-page">
+    <div class="status-icon">⏳</div>
+    <div class="status-title">處理中,請稍候...</div>
+  </div>
+
+  <!-- 完成頁 -->
+  <div id="donePage" class="status-page">
+    <div class="status-icon">✅</div>
+    <div class="status-title">感謝您同意個資使用</div>
+    <div class="status-desc">您現在可以正常使用本帳號的所有功能。</div>
+    <button class="btn" style="width:auto;padding:12px 32px;" onclick="closeLiff()">關閉視窗</button>
+  </div>
+
+  <!-- 錯誤頁 -->
+  <div id="errorPage" class="status-page">
+    <div class="status-icon">⚠️</div>
+    <div class="status-title">發生錯誤</div>
+    <div class="status-desc" id="errorDesc">請稍後再試一次，或聯繫客服協助。</div>
+    <button class="btn btn-secondary" style="width:auto;padding:12px 32px;" onclick="showSummary()">返回重試</button>
+  </div>
+
+<script>
+  // ⚠️ 部署前務必替換成新北_Webhook 目前部署中的 GAS Web App URL
+  var GAS_WEBHOOK_URL = "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec";
+  var LIFF_ID = "2010736878-BgOOG139";
+
+  var currentUserId = null;
+  var currentDisplayName = null;
+
+  function showPage(id) {
+    document.querySelectorAll('.page, .status-page').forEach(function(el) {
+      el.classList.remove('active');
+    });
+    document.getElementById(id).classList.add('active');
+  }
+
+  function showSummary()   { showPage('summaryPage'); }
+  function showFullTerms() { showPage('fullTermsPage'); }
+
+  function onCheckboxChange() {
+    document.getElementById('agreeBtn').disabled = !document.getElementById('agreeCheckbox').checked;
+  }
+
+  function closeLiff() {
+    try {
+      liff.closeWindow();
+    } catch (e) {
+      // 非 LINE 內開啟時 closeWindow 會失敗，忽略即可
+    }
+  }
+
+  function submitConsent() {
+    showPage('submittingPage');
+
+    fetch(GAS_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' }, // 用 text/plain 避免瀏覽器發送 CORS preflight
+      body: JSON.stringify({
+        action: 'liff_consent_agree',
+        userId: currentUserId,
+        displayName: currentDisplayName
+      })
+    })
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        if (data.success) {
+          showPage('donePage');
+        } else {
+          document.getElementById('errorDesc').textContent = data.error || '請稍後再試一次。';
+          showPage('errorPage');
+        }
+      })
+      .catch(function(err) {
+        document.getElementById('errorDesc').textContent = '網路連線異常，請稍後再試一次。';
+        showPage('errorPage');
+      });
+  }
+
+  function init() {
+    liff.init({ liffId: LIFF_ID })
+      .then(function() {
+        if (!liff.isLoggedIn()) {
+          liff.login();
+          return;
+        }
+        return liff.getProfile();
+      })
+      .then(function(profile) {
+        if (!profile) return;
+        currentUserId = profile.userId;
+        currentDisplayName = profile.displayName || "未知";
+        document.getElementById('loadingPage').style.display = 'none';
+        showSummary();
+      })
+      .catch(function(err) {
+        document.getElementById('loadingPage').textContent = '頁面載入失敗，請重新開啟。';
+      });
+  }
+
+  init();
+</script>
+
+</body>
+</html>
