@@ -333,9 +333,16 @@ async function saveAudience() {
   const finalAudienceId = _audEditId || res.data.audience_id;
   const checkboxes = document.querySelectorAll('#audModalTagLinkSection input[type=checkbox]:checked');
   const tagIds = Array.prototype.map.call(checkboxes, function(cb) { return cb.value; });
-  await apiCall({ action: 'setAudienceTagLinks', audienceId: finalAudienceId, tagIds: tagIds });
+  const linkRes = await apiCall({ action: 'setAudienceTagLinks', audienceId: finalAudienceId, tagIds: tagIds });
 
-  showToast(_audEditIndex !== null ? '更新成功' : '受眾建立成功');
+  let pushMsg = '';
+  if (linkRes.success && linkRes.data.pushResults && linkRes.data.pushResults.length > 0) {
+    const pushed = linkRes.data.pushResults.map(function(p) {
+      return p.tagName + '：' + (p.success ? '成功推播 ' + p.pushed + ' 人' : '失敗');
+    }).join('；');
+    pushMsg = '（' + pushed + '）';
+  }
+  showToast((_audEditIndex !== null ? '更新成功' : '受眾建立成功') + pushMsg);
   closeAudienceModal();
   loadAudience();
 }
