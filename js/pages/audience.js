@@ -304,7 +304,7 @@ async function _renderAudienceTagLinkSection(currentAudienceId) {
   _tagListCacheForAudience.forEach(function(t) {
     const checked = linkedIds[t.tagId] ? 'checked' : '';
     html += '<label style="display:block;padding:2px 0;cursor:pointer;">'
-      + '<input type="checkbox" value="' + t.tagId + '" ' + checked + '> '
+      + '<input type="checkbox" value="' + t.tagId + '" style="width:auto;margin-right:6px;vertical-align:middle;" ' + checked + '> '
       + t.name
       + '</label>';
   });
