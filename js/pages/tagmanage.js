@@ -43,6 +43,8 @@ function _buildTagModalHtml() {
     + '    <input type="text" id="tagModalName" class="input-full">'
     + '    <label>分類</label>'
     + '    <input type="text" id="tagModalCategory" class="input-full" placeholder="如：行政區、社區、電力團隊">'
+    + '    <label>觸發關鍵字</label>'
+    + '    <input type="text" id="tagModalKeyword" class="input-full" placeholder="客戶輸入此關鍵字自動貼上此標籤，可留空">'
     + '    <label>狀態</label>'
     + '    <select id="tagModalStatus" class="input-full">'
     + '      <option value="啟用">啟用</option>'
@@ -145,8 +147,9 @@ function openCreateTagModal() {
   document.getElementById('tagModalTitle').textContent = '新增標籤';
   document.getElementById('tagModalTagId').value = '';
   document.getElementById('tagModalName').value = '';
-  document.getElementById('tagModalCategory').value = '';
-  document.getElementById('tagModalStatus').value = '啟用';
+  document.getElementById('tagModalCategory').value = tag.category || '';
+  document.getElementById('tagModalKeyword').value = tag.keyword || '';
+  document.getElementById('tagModalStatus').value = tag.status;
   document.getElementById('tagModalNote').value = '';
   openModal('tagModal');
 }
@@ -170,6 +173,7 @@ function submitTagModal() {
   var tagId = document.getElementById('tagModalTagId').value;
   var name = document.getElementById('tagModalName').value.trim();
   var category = document.getElementById('tagModalCategory').value.trim();
+  var keyword = document.getElementById('tagModalKeyword').value.trim();
   var status = document.getElementById('tagModalStatus').value;
   var note = document.getElementById('tagModalNote').value.trim();
 
@@ -179,7 +183,7 @@ function submitTagModal() {
   }
 
   var actionName = tagId ? 'updateTag' : 'createTag';
-  var params = { action: actionName, name: name, category: category, status: status, note: note };
+  var params = { action: actionName, name: name, category: category, keyword: keyword, status: status, note: note };
   if (tagId) params.tagId = tagId;
 
   showLoading();
