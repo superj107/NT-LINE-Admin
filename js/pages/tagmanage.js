@@ -244,10 +244,17 @@ async function submitTagModal() {
     var finalTagId = tagId || res.data.tagId;
     var checkboxes = document.querySelectorAll('#tagModalAudienceLinkSection input[type=checkbox]:checked');
     var audienceIds = Array.prototype.map.call(checkboxes, function (cb) { return cb.value; });
-    await apiCall({ action: 'setTagAudienceLinks', tagId: finalTagId, audienceIds: audienceIds });
+    var linkRes = await apiCall({ action: 'setTagAudienceLinks', tagId: finalTagId, audienceIds: audienceIds });
 
     hideLoading();
-    showToast('儲存成功', 'success');
+    var pushMsg = '';
+    if (linkRes.success && linkRes.data.pushResults && linkRes.data.pushResults.length > 0) {
+      var pushed = linkRes.data.pushResults.map(function (p) {
+        return p.audienceName + '：' + (p.success ? '成功推播 ' + p.pushed + ' 人' : '失敗');
+      }).join('；');
+      pushMsg = '（' + pushed + '）';
+    }
+    showToast('儲存成功' + pushMsg, 'success');
     closeModal('tagModal');
     loadTagCatalogList();
   } catch (err) {
