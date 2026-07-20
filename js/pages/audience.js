@@ -6,6 +6,7 @@ const _pageSize      = 20;
 let _sortKey         = '';
 let _sortAsc         = true;
 let _searchKeyword   = '';
+let _tagListCacheForAudience = null;
 
 async function loadAudience() {
   setContent('<div class="loading">載入中...</div>');
@@ -77,6 +78,10 @@ function renderAudiencePage(richMenus) {
           <label>對應圖文選單</label>
           <select id="aud-richmenu">${rmOptions}</select>
         </div>
+        <div class="form-group">
+          <label>連結標籤（可複選，選了之後不會自動貼標，只是後台方便管理對應關係）</label>
+          <div id="audModalTagLinkSection" style="max-height:160px;overflow-y:auto;border:1px solid #e0e0e0;border-radius:6px;padding:10px;font-size:13px;">載入中...</div>
+        </div>
         <div class="modal-footer">
           <button class="btn-cancel" onclick="closeAudienceModal()">取消</button>
           <button class="btn btn-primary" id="aud-save-btn" onclick="saveAudience()">建立</button>
@@ -100,7 +105,6 @@ function renderAudiencePage(richMenus) {
         </div>
       </div>
     </div>
-    
 
     <!-- 匯入 UID Modal -->
     <div class="modal-overlay" id="importModal">
@@ -253,6 +257,7 @@ function openCreateAudienceModal() {
   document.getElementById('aud-keyword').value  = '';
   document.getElementById('aud-richmenu').value = '';
   document.getElementById('audienceModal').classList.add('show');
+  _renderAudienceTagLinkSection(null);
 }
 
 function editAudience(index, rowJson) {
@@ -265,6 +270,45 @@ function editAudience(index, rowJson) {
   document.getElementById('aud-keyword').value  = row.keyword  || '';
   document.getElementById('aud-richmenu').value = row.rich_menu_id || '';
   document.getElementById('audienceModal').classList.add('show');
+  _renderAudienceTagLinkSection(row.audience_id);
+}
+
+/**
+ * 渲染「連結標籤」勾選清單
+ * currentAudienceId 為 null 時（新增受眾情境）：清單全部不勾選
+ * currentAudienceId 有值時（編輯受眾情境）：先查目前已連結的標籤，對應勾選
+ */
+async function _renderAudienceTagLinkSection(currentAudienceId) {
+  const container = document.getElementById('audModalTagLinkSection');
+  container.innerHTML = '載入中...';
+
+  if (!_tagListCacheForAudience) {
+    const tagRes = await apiCall({ action: 'getTagCatalogList' });
+    _tagListCacheForAudience = (tagRes.success ? tagRes.data.list : []) || [];
+  }
+
+  if (_tagListCacheForAudience.length === 0) {
+    container.innerHTML = '<span style="color:#999">目前沒有任何標籤可連結</span>';
+    return;
+  }
+
+  let linkedIds = {};
+  if (currentAudienceId) {
+    const linkRes = await apiCall({ action: 'getAudienceTagLinks', audienceId: currentAudienceId });
+    if (linkRes.success) {
+      linkRes.data.list.forEach(function(l) { linkedIds[l.tagId] = true; });
+    }
+  }
+
+  let html = '';
+  _tagListCacheForAudience.forEach(function(t) {
+    const checked = linkedIds[t.tagId] ? 'checked' : '';
+    html += '<label style="display:block;padding:2px 0;cursor:pointer;">'
+      + '<input type="checkbox" value="' + t.tagId + '" ' + checked + '> '
+      + t.name
+      + '</label>';
+  });
+  container.innerHTML = html;
 }
 
 async function saveAudience() {
@@ -281,13 +325,19 @@ async function saveAudience() {
     res = await apiCall({ action: 'createAudience', name, keyword, rich_menu_id: richMenuId });
   }
 
-  if (res.success) {
-    showToast(_audEditIndex !== null ? '更新成功' : '受眾建立成功');
-    closeAudienceModal();
-    loadAudience();
-  } else {
+  if (!res.success) {
     showToast(res.message || '失敗', 'error');
+    return;
   }
+
+  const finalAudienceId = _audEditId || res.data.audience_id;
+  const checkboxes = document.querySelectorAll('#audModalTagLinkSection input[type=checkbox]:checked');
+  const tagIds = Array.prototype.map.call(checkboxes, function(cb) { return cb.value; });
+  await apiCall({ action: 'setAudienceTagLinks', audienceId: finalAudienceId, tagIds: tagIds });
+
+  showToast(_audEditIndex !== null ? '更新成功' : '受眾建立成功');
+  closeAudienceModal();
+  loadAudience();
 }
 
 function closeAudienceModal() {
