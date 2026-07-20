@@ -1,10 +1,11 @@
 /**
  * pages/tagmanage.js
- * 標籤管理頁面：標籤主檔管理 + 使用者標籤查詢/編輯 + 從標籤建立受眾
+ * 標籤管理頁面：標籤主檔管理 + 使用者標籤查詢/編輯 + 從標籤建立受眾 + 連結受眾
  */
 
 var _tagCatalogData = [];
 var _selectedTagId = null;
+var _audienceListCache = null;
 
 function loadTagManage() {
   var html = ''
@@ -52,6 +53,8 @@ function _buildTagModalHtml() {
     + '    </select>'
     + '    <label>備註</label>'
     + '    <input type="text" id="tagModalNote" class="input-full">'
+    + '    <label>連結受眾（可複選，選了之後不會自動貼標，只是後台方便管理對應關係）</label>'
+    + '    <div id="tagModalAudienceLinkSection" style="max-height:160px;overflow-y:auto;border:1px solid #e0e0e0;border-radius:8px;padding:10px;margin-bottom:12px;font-size:13px;">載入中...</div>'
     + '    <div class="modal-footer">'
     + '      <button class="btn-cancel" onclick="closeModal(\'tagModal\')">取消</button>'
     + '      <button class="btn btn-primary" onclick="submitTagModal()">儲存</button>'
@@ -147,11 +150,12 @@ function openCreateTagModal() {
   document.getElementById('tagModalTitle').textContent = '新增標籤';
   document.getElementById('tagModalTagId').value = '';
   document.getElementById('tagModalName').value = '';
-  document.getElementById('tagModalCategory').value = tag.category || '';
-  document.getElementById('tagModalKeyword').value = tag.keyword || '';
-  document.getElementById('tagModalStatus').value = tag.status;
+  document.getElementById('tagModalCategory').value = '';
+  document.getElementById('tagModalKeyword').value = '';
+  document.getElementById('tagModalStatus').value = '啟用';
   document.getElementById('tagModalNote').value = '';
   openModal('tagModal');
+  _renderTagAudienceLinkSection(null);
 }
 
 function openEditTagModal(tagId) {
@@ -164,12 +168,54 @@ function openEditTagModal(tagId) {
   document.getElementById('tagModalTagId').value = tag.tagId;
   document.getElementById('tagModalName').value = tag.name;
   document.getElementById('tagModalCategory').value = tag.category || '';
+  document.getElementById('tagModalKeyword').value = tag.keyword || '';
   document.getElementById('tagModalStatus').value = tag.status;
   document.getElementById('tagModalNote').value = tag.note || '';
   openModal('tagModal');
+  _renderTagAudienceLinkSection(tagId);
 }
 
-function submitTagModal() {
+/**
+ * 渲染「連結受眾」勾選清單
+ * currentTagId 為 null 時（新增標籤情境）：清單全部不勾選
+ * currentTagId 有值時（編輯標籤情境）：先查目前已連結的受眾，對應勾選
+ */
+async function _renderTagAudienceLinkSection(currentTagId) {
+  var container = document.getElementById('tagModalAudienceLinkSection');
+  container.innerHTML = '載入中...';
+
+  if (!_audienceListCache) {
+    var audRes = await apiCall({ action: 'getAudienceList' });
+    _audienceListCache = (audRes.success ? audRes.data : []) || [];
+  }
+
+  if (_audienceListCache.length === 0) {
+    container.innerHTML = '<span style="color:#999">目前沒有任何受眾可連結</span>';
+    return;
+  }
+
+  var linkedIds = {};
+  if (currentTagId) {
+    var linkRes = await apiCall({ action: 'getTagAudienceLinks', tagId: currentTagId });
+    if (linkRes.success) {
+      linkRes.data.list.forEach(function (l) { linkedIds[l.audienceId] = true; });
+    }
+  }
+
+  var html = '';
+  for (var i = 0; i < _audienceListCache.length; i++) {
+    var a = _audienceListCache[i];
+    var label = a.chat_tag || a.keyword || a.audience_id;
+    var checked = linkedIds[a.audience_id] ? 'checked' : '';
+    html += '<label style="display:block;padding:2px 0;cursor:pointer;">'
+      + '<input type="checkbox" value="' + a.audience_id + '" ' + checked + '> '
+      + escHtml(label)
+      + '</label>';
+  }
+  container.innerHTML = html;
+}
+
+async function submitTagModal() {
   var tagId = document.getElementById('tagModalTagId').value;
   var name = document.getElementById('tagModalName').value.trim();
   var category = document.getElementById('tagModalCategory').value.trim();
@@ -187,19 +233,27 @@ function submitTagModal() {
   if (tagId) params.tagId = tagId;
 
   showLoading();
-  apiCall(params).then(function (res) {
-    hideLoading();
+  try {
+    var res = await apiCall(params);
     if (!res.success) {
+      hideLoading();
       showToast('儲存失敗：' + res.message, 'error');
       return;
     }
+
+    var finalTagId = tagId || res.data.tagId;
+    var checkboxes = document.querySelectorAll('#tagModalAudienceLinkSection input[type=checkbox]:checked');
+    var audienceIds = Array.prototype.map.call(checkboxes, function (cb) { return cb.value; });
+    await apiCall({ action: 'setTagAudienceLinks', tagId: finalTagId, audienceIds: audienceIds });
+
+    hideLoading();
     showToast('儲存成功', 'success');
     closeModal('tagModal');
     loadTagCatalogList();
-  }).catch(function (err) {
+  } catch (err) {
     hideLoading();
     showToast('儲存發生錯誤', 'error');
-  });
+  }
 }
 
 function confirmDeactivateTag(tagId, tagName) {
@@ -315,6 +369,7 @@ function submitCreateAudienceFromTag() {
     }
     showToast('受眾建立成功！共匯入 ' + res.data.count + ' 位使用者', 'success');
     closeModal('createAudienceModal');
+    _audienceListCache = null; // 清快取，下次開標籤連結清單時會重新抓最新受眾清單
   }).catch(function (err) {
     hideLoading();
     showToast('建立發生錯誤', 'error');
