@@ -208,7 +208,7 @@ async function _renderTagAudienceLinkSection(currentTagId) {
     var label = a.chat_tag || a.keyword || a.audience_id;
     var checked = linkedIds[a.audience_id] ? 'checked' : '';
     html += '<label style="display:block;padding:2px 0;cursor:pointer;">'
-      + '<input type="checkbox" value="' + a.audience_id + '" ' + checked + '> '
+      + '<input type="checkbox" value="' + a.audience_id + '" style="width:auto;margin-right:6px;vertical-align:middle;" ' + checked + '> '
       + escHtml(label)
       + '</label>';
   }
