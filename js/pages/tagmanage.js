@@ -53,7 +53,8 @@ function _buildTagModalHtml() {
     + '    </select>'
     + '    <label>備註</label>'
     + '    <input type="text" id="tagModalNote" class="input-full">'
-    + '    <label>連結受眾（可複選，選了之後不會自動貼標，只是後台方便管理對應關係）</label>'
+    + '    <label>連結受眾（可複選，選了之後會把此標籤目前的使用者實際推播進該受眾）</label>'
+    + '    <input type="text" id="tagAudienceLinkFilter" placeholder="搜尋受眾..." class="input-search" oninput="filterTagAudienceLinkOptions()">'
     + '    <div id="tagModalAudienceLinkSection" style="max-height:160px;overflow-y:auto;border:1px solid #e0e0e0;border-radius:8px;padding:10px;margin-bottom:12px;font-size:13px;">載入中...</div>'
     + '    <div class="modal-footer">'
     + '      <button class="btn-cancel" onclick="closeModal(\'tagModal\')">取消</button>'
@@ -154,6 +155,7 @@ function openCreateTagModal() {
   document.getElementById('tagModalKeyword').value = '';
   document.getElementById('tagModalStatus').value = '啟用';
   document.getElementById('tagModalNote').value = '';
+  document.getElementById('tagAudienceLinkFilter').value = '';
   openModal('tagModal');
   _renderTagAudienceLinkSection(null);
 }
@@ -171,6 +173,7 @@ function openEditTagModal(tagId) {
   document.getElementById('tagModalKeyword').value = tag.keyword || '';
   document.getElementById('tagModalStatus').value = tag.status;
   document.getElementById('tagModalNote').value = tag.note || '';
+  document.getElementById('tagAudienceLinkFilter').value = '';
   openModal('tagModal');
   _renderTagAudienceLinkSection(tagId);
 }
@@ -207,12 +210,21 @@ async function _renderTagAudienceLinkSection(currentTagId) {
     var a = _audienceListCache[i];
     var label = a.chat_tag || a.keyword || a.audience_id;
     var checked = linkedIds[a.audience_id] ? 'checked' : '';
-    html += '<label style="display:block;padding:2px 0;cursor:pointer;">'
+    html += '<label class="link-checkbox-item" data-label="' + escHtml(label).toLowerCase() + '" style="display:block;padding:2px 0;cursor:pointer;">'
       + '<input type="checkbox" value="' + a.audience_id + '" style="width:auto;margin-right:6px;vertical-align:middle;" ' + checked + '> '
       + escHtml(label)
       + '</label>';
   }
   container.innerHTML = html;
+}
+
+function filterTagAudienceLinkOptions() {
+  var keyword = document.getElementById('tagAudienceLinkFilter').value.trim().toLowerCase();
+  var items = document.querySelectorAll('#tagModalAudienceLinkSection .link-checkbox-item');
+  for (var i = 0; i < items.length; i++) {
+    var label = items[i].getAttribute('data-label') || '';
+    items[i].style.display = (!keyword || label.indexOf(keyword) !== -1) ? 'block' : 'none';
+  }
 }
 
 async function submitTagModal() {
