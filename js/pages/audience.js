@@ -350,9 +350,9 @@ async function saveAudience() {
 
   let pushMsg = '';
   if (linkRes.success && linkRes.data.pushResults && linkRes.data.pushResults.length > 0) {
-    const pushed = linkRes.data.pushResults.map(function(p) {
-      return p.tagName + '：' + (p.success ? '成功推播 ' + p.pushed + ' 人' : '失敗');
-    }).join('；');
+      const pushed = linkRes.data.pushResults.map(function(p) {
+          return p.tagName + '：' + (p.success ? '成功推播 ' + p.pushed + ' 人' : '失敗（' + (p.message || '未知錯誤') + '）');
+        }).join('；');
     pushMsg = '（' + pushed + '）';
   }
   showToast((_audEditIndex !== null ? '更新成功' : '受眾建立成功') + pushMsg);
