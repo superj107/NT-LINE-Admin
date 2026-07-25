@@ -97,7 +97,7 @@ function renderAudiencePage(richMenus) {
         <div id="membersModalCount" style="color:#888;font-size:13px;margin-bottom:12px"></div>
         <div style="max-height:400px;overflow-y:auto">
           <table>
-            <thead><tr><th>UserID</th><th>顯示名稱</th><th>電話</th><th>觸發關鍵字</th></tr></thead>
+            <thead><tr><th>UserID</th><th>顯示名稱</th><th>加入時間</th><th>加入方式</th></tr></thead>
             <tbody id="membersModalTbody"></tbody>
           </table>
         </div>
@@ -350,9 +350,9 @@ async function saveAudience() {
 
   let pushMsg = '';
   if (linkRes.success && linkRes.data.pushResults && linkRes.data.pushResults.length > 0) {
-      const pushed = linkRes.data.pushResults.map(function(p) {
-          return p.tagName + '：' + (p.success ? '成功推播 ' + p.pushed + ' 人' : '失敗（' + (p.message || '未知錯誤') + '）');
-        }).join('；');
+    const pushed = linkRes.data.pushResults.map(function(p) {
+      return p.tagName + '：' + (p.success ? '成功推播 ' + p.pushed + ' 人' : '失敗');
+    }).join('；');
     pushMsg = '（' + pushed + '）';
   }
   showToast((_audEditIndex !== null ? '更新成功' : '受眾建立成功') + pushMsg);
@@ -456,11 +456,13 @@ async function viewAudienceMembers(audienceId, encodedName) {
   document.getElementById('membersModalCount').textContent = '共 ' + list.length + ' 人';
 
   const rows = list.map(function(m) {
+    const joinedAtText = m.joinedAt ? formatDate(new Date(m.joinedAt)) : '-';
+    const methodText = m.method + (m.source ? '（' + m.source + '）' : '');
     return `<tr>
       <td style="font-size:12px;color:#888">${m.userId}</td>
       <td>${m.displayName || '-'}</td>
-      <td>${m.phone || '-'}</td>
-      <td>${m.keyword || '-'}</td>
+      <td>${joinedAtText}</td>
+      <td>${methodText || '-'}</td>
     </tr>`;
   }).join('');
 
