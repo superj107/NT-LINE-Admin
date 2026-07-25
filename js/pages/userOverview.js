@@ -12,6 +12,7 @@ var _userOverviewSearch = '';
 var _userOverviewTagOptions = [];
 
 function loadUserOverview() {
+  _userOverviewSearch = '';
   var html = ''
     + '<h2 class="page-title">用戶總覽</h2>'
     + '<div class="card">'
