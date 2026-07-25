@@ -262,7 +262,7 @@ async function submitTagModal() {
     var pushMsg = '';
     if (linkRes.success && linkRes.data.pushResults && linkRes.data.pushResults.length > 0) {
       var pushed = linkRes.data.pushResults.map(function (p) {
-        return p.audienceName + '：' + (p.success ? '成功推播 ' + p.pushed + ' 人' : '失敗');
+        return p.audienceName + '：' + (p.success ? '成功推播 ' + p.pushed + ' 人' : '失敗（' + (p.message || '未知錯誤') + '）');
       }).join('；');
       pushMsg = '（' + pushed + '）';
     }
