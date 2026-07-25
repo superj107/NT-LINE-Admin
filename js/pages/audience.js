@@ -79,7 +79,8 @@ function renderAudiencePage(richMenus) {
           <select id="aud-richmenu">${rmOptions}</select>
         </div>
         <div class="form-group">
-          <label>連結標籤（可複選，選了之後不會自動貼標，只是後台方便管理對應關係）</label>
+          <label>連結標籤（可複選，選了之後會把該標籤目前的使用者實際推播進此受眾）</label>
+          <input type="text" id="audTagLinkFilter" placeholder="搜尋標籤..." style="width:100%;box-sizing:border-box;padding:8px 12px;border:1.5px solid #e0e0e0;border-radius:6px;font-size:14px;margin-bottom:8px" oninput="filterAudienceTagLinkOptions()">
           <div id="audModalTagLinkSection" style="max-height:160px;overflow-y:auto;border:1px solid #e0e0e0;border-radius:6px;padding:10px;font-size:13px;">載入中...</div>
         </div>
         <div class="modal-footer">
@@ -256,6 +257,7 @@ function openCreateAudienceModal() {
   document.getElementById('aud-name').value     = '';
   document.getElementById('aud-keyword').value  = '';
   document.getElementById('aud-richmenu').value = '';
+  document.getElementById('audTagLinkFilter').value = '';
   document.getElementById('audienceModal').classList.add('show');
   _renderAudienceTagLinkSection(null);
 }
@@ -269,6 +271,7 @@ function editAudience(index, rowJson) {
   document.getElementById('aud-name').value     = row.chat_tag || '';
   document.getElementById('aud-keyword').value  = row.keyword  || '';
   document.getElementById('aud-richmenu').value = row.rich_menu_id || '';
+  document.getElementById('audTagLinkFilter').value = '';
   document.getElementById('audienceModal').classList.add('show');
   _renderAudienceTagLinkSection(row.audience_id);
 }
@@ -303,12 +306,22 @@ async function _renderAudienceTagLinkSection(currentAudienceId) {
   let html = '';
   _tagListCacheForAudience.forEach(function(t) {
     const checked = linkedIds[t.tagId] ? 'checked' : '';
-    html += '<label style="display:block;padding:2px 0;cursor:pointer;">'
+    const label = (t.name || '').toLowerCase();
+    html += '<label class="link-checkbox-item" data-label="' + label + '" style="display:block;padding:2px 0;cursor:pointer;">'
       + '<input type="checkbox" value="' + t.tagId + '" style="width:auto;margin-right:6px;vertical-align:middle;" ' + checked + '> '
       + t.name
       + '</label>';
   });
   container.innerHTML = html;
+}
+
+function filterAudienceTagLinkOptions() {
+  const keyword = document.getElementById('audTagLinkFilter').value.trim().toLowerCase();
+  const items = document.querySelectorAll('#audModalTagLinkSection .link-checkbox-item');
+  items.forEach(function(item) {
+    const label = item.getAttribute('data-label') || '';
+    item.style.display = (!keyword || label.indexOf(keyword) !== -1) ? 'block' : 'none';
+  });
 }
 
 async function saveAudience() {
