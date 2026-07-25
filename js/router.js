@@ -2,6 +2,7 @@ var currentPage = null;
 
 const PAGES = {
   dashboard: { label: '儀表板',   icon: '📊', load: loadDashboard },
+  userOverview: { label: '用戶總覽', icon: '👤', load: loadUserOverview },
   tagmanage: { label: '標籤管理', icon: '🏷️', load: loadTagManage },
   audience:  { label: '受眾管理', icon: '👥', load: loadAudience  },
   richmenu:  { label: '圖文選單', icon: '🖼️', load: loadRichMenu  },
