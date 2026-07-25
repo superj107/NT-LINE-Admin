@@ -16,7 +16,7 @@ function loadUserOverview() {
   var html = ''
     + '<h2 class="page-title">用戶總覽</h2>'
     + '<div class="card">'
-    + '  <input type="text" id="userOverviewSearch" placeholder="搜尋顯示名稱或標籤..." class="input-search" oninput="filterUserOverview()">'
+    + '  <input type="text" id="userOverviewSearch" placeholder="搜尋顯示名稱或標籤..." class="input-search" value="" oninput="filterUserOverview()">'
     + '  <span id="userOverviewCount" style="color:#888;font-size:13px;margin-left:8px;"></span>'
     + '  <table style="margin-top:16px"><thead><tr>'
     + '    <th>顯示名稱</th><th>最後互動</th><th>標籤</th><th>操作</th>'
