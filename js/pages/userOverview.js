@@ -1,7 +1,7 @@
 /** 檔名: userOverview.js | 所屬: GitHub Pages前端 */
 /**
  * pages/userOverview.js
- * 用戶總覽：列出所有用戶與其標籤，支援搜尋、人工貼標/移除標籤
+ * 用戶總覽：列出所有用戶與其標籤/人工註記，支援搜尋、人工貼標/移除標籤、編輯人工註記
  * 自動貼標由 Webhook 端的 autoTagByKeyword 負責，這裡只處理人工操作
  */
 
@@ -13,17 +13,19 @@ var _userOverviewTagOptions = [];
 
 function loadUserOverview() {
   _userOverviewSearch = '';
+
   var html = ''
     + '<h2 class="page-title">用戶總覽</h2>'
     + '<div class="card">'
     + '  <input type="text" id="userOverviewSearch" placeholder="搜尋顯示名稱或標籤..." class="input-search" value="" oninput="filterUserOverview()">'
     + '  <span id="userOverviewCount" style="color:#888;font-size:13px;margin-left:8px;"></span>'
     + '  <table style="margin-top:16px"><thead><tr>'
-    + '    <th>顯示名稱</th><th>最後互動</th><th>標籤</th><th>操作</th>'
+    + '    <th>顯示名稱</th><th>最後互動</th><th>標籤</th><th>人工註記</th><th>操作</th>'
     + '  </tr></thead><tbody id="userOverviewTbody"></tbody></table>'
     + '  <div id="userOverviewPagination" style="display:flex;gap:8px;justify-content:center;margin-top:16px"></div>'
     + '</div>'
-    + _buildAddTagModalHtml();
+    + _buildAddTagModalHtml()
+    + _buildEditNoteModalHtml();
 
   setContent(html);
   loadUserOverviewData();
@@ -41,6 +43,23 @@ function _buildAddTagModalHtml() {
     + '    <div class="modal-footer">'
     + '      <button class="btn-cancel" onclick="closeModal(\'addTagToUserModal\')">取消</button>'
     + '      <button class="btn btn-primary" onclick="submitAddTagToUser()">新增</button>'
+    + '    </div>'
+    + '  </div>'
+    + '</div>';
+}
+
+function _buildEditNoteModalHtml() {
+  return ''
+    + '<div id="editNoteModal" class="modal-overlay" style="display:none;">'
+    + '  <div class="modal">'
+    + '    <h3>編輯人工註記</h3>'
+    + '    <input type="hidden" id="editNoteUserId">'
+    + '    <p id="editNoteUserName" style="color:#666;font-size:13px;margin-bottom:12px;"></p>'
+    + '    <label>人工註記（自由文字，多筆建議用、或,分隔，僅供人工篩選用，不影響正式標籤系統）</label>'
+    + '    <textarea id="editNoteTextarea" class="input-full" style="min-height:80px;resize:vertical;"></textarea>'
+    + '    <div class="modal-footer">'
+    + '      <button class="btn-cancel" onclick="closeModal(\'editNoteModal\')">取消</button>'
+    + '      <button class="btn btn-primary" onclick="submitEditNote()">儲存</button>'
     + '    </div>'
     + '  </div>'
     + '</div>';
@@ -106,15 +125,20 @@ function renderUserOverviewTable() {
     }
     if (u.tags.length === 0) chips = '<span style="color:#bbb">無標籤</span>';
 
+    var noteDisplay = u.note ? escHtml(u.note) : '<span style="color:#bbb">（無）</span>';
+
     html += '<tr>'
       + '<td>' + escHtml(u.displayName || '(無名稱)') + '<br><span class="user-id-hint">' + escHtml(u.userId) + '</span></td>'
       + '<td>' + lastActiveText + '</td>'
       + '<td>' + chips + '</td>'
+      + '<td style="max-width:200px;">' + noteDisplay
+      + ' <a href="#" onclick="openEditNoteModal(\'' + u.userId + '\', \'' + escHtml(u.displayName || '') + '\', \'' + escHtml(u.note || '').replace(/'/g, '&#39;') + '\'); return false;">✏️</a>'
+      + '</td>'
       + '<td><button class="btn btn-primary" onclick="openAddTagToUserModal(\'' + u.userId + '\', \'' + escHtml(u.displayName || '') + '\')">+ 貼標籤</button></td>'
       + '</tr>';
   }
 
-  document.getElementById('userOverviewTbody').innerHTML = html || '<tr><td colspan="4" class="empty">找不到符合的用戶</td></tr>';
+  document.getElementById('userOverviewTbody').innerHTML = html || '<tr><td colspan="5" class="empty">找不到符合的用戶</td></tr>';
 
   var paginationHtml = '';
   if (pages > 1) {
@@ -203,4 +227,34 @@ function removeUserTagFromOverview(userId, tagId, tagName) {
       showToast('移除發生錯誤', 'error');
     }
   });
+}
+
+// ===== 人工註記編輯 =====
+
+function openEditNoteModal(userId, displayName, currentNote) {
+  document.getElementById('editNoteUserId').value = userId;
+  document.getElementById('editNoteUserName').textContent = '對象：' + (displayName || userId);
+  document.getElementById('editNoteTextarea').value = currentNote || '';
+  openModal('editNoteModal');
+}
+
+async function submitEditNote() {
+  var userId = document.getElementById('editNoteUserId').value;
+  var note = document.getElementById('editNoteTextarea').value.trim();
+
+  showLoading();
+  try {
+    var res = await apiCall({ action: 'updateUserNote', userId: userId, note: note });
+    hideLoading();
+    if (!res.success) {
+      showToast('儲存失敗：' + res.message, 'error');
+      return;
+    }
+    showToast('已儲存', 'success');
+    closeModal('editNoteModal');
+    loadUserOverviewData();
+  } catch (err) {
+    hideLoading();
+    showToast('儲存發生錯誤', 'error');
+  }
 }
