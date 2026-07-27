@@ -37,9 +37,11 @@ function _buildAddTagModalHtml() {
     + '  <div class="modal">'
     + '    <h3>貼標籤</h3>'
     + '    <input type="hidden" id="addTagUserId">'
+    + '    <input type="hidden" id="addTagSelectedTagId">'
     + '    <p id="addTagUserName" style="color:#666;font-size:13px;margin-bottom:12px;"></p>'
     + '    <label>選擇標籤</label>'
-    + '    <select id="addTagSelectModal" class="input-full"></select>'
+    + '    <input type="text" id="addTagSearchInput" placeholder="搜尋標籤..." class="input-search" oninput="filterAddTagOptions()">'
+    + '    <div id="addTagOptionsList" style="max-height:200px;overflow-y:auto;border:1px solid #e0e0e0;border-radius:8px;padding:8px;margin-bottom:12px;font-size:14px;">載入中...</div>'
     + '    <div class="modal-footer">'
     + '      <button class="btn-cancel" onclick="closeModal(\'addTagToUserModal\')">取消</button>'
     + '      <button class="btn btn-primary" onclick="submitAddTagToUser()">新增</button>'
@@ -165,10 +167,12 @@ function goUserOverviewPage(page) {
 
 async function openAddTagToUserModal(userId, displayName) {
   document.getElementById('addTagUserId').value = userId;
+  document.getElementById('addTagSelectedTagId').value = '';
   document.getElementById('addTagUserName').textContent = '對象：' + (displayName || userId);
+  document.getElementById('addTagSearchInput').value = '';
 
-  var select = document.getElementById('addTagSelectModal');
-  select.innerHTML = '<option value="">載入中...</option>';
+  var container = document.getElementById('addTagOptionsList');
+  container.innerHTML = '載入中...';
   openModal('addTagToUserModal');
 
   if (_userOverviewTagOptions.length === 0) {
@@ -178,16 +182,53 @@ async function openAddTagToUserModal(userId, displayName) {
     }
   }
 
-  var options = '<option value="">-- 選擇標籤 --</option>';
-  for (var i = 0; i < _userOverviewTagOptions.length; i++) {
-    options += '<option value="' + _userOverviewTagOptions[i].tagId + '">' + escHtml(_userOverviewTagOptions[i].name) + '</option>';
+  _renderAddTagOptions();
+}
+
+function _renderAddTagOptions() {
+  var container = document.getElementById('addTagOptionsList');
+  if (_userOverviewTagOptions.length === 0) {
+    container.innerHTML = '<span style="color:#999">目前沒有可用的標籤</span>';
+    return;
   }
-  select.innerHTML = options;
+
+  var html = '';
+  for (var i = 0; i < _userOverviewTagOptions.length; i++) {
+    var t = _userOverviewTagOptions[i];
+    var label = (t.name || '').toLowerCase();
+    html += '<div class="tag-option-item" data-label="' + escHtml(label) + '" '
+      + 'onclick="selectAddTagOption(\'' + t.tagId + '\', this)" '
+      + 'style="padding:6px 8px;cursor:pointer;border-radius:6px;">'
+      + escHtml(t.name)
+      + '</div>';
+  }
+  container.innerHTML = html;
+}
+
+function filterAddTagOptions() {
+  var keyword = document.getElementById('addTagSearchInput').value.trim().toLowerCase();
+  var items = document.querySelectorAll('#addTagOptionsList .tag-option-item');
+  for (var i = 0; i < items.length; i++) {
+    var label = items[i].getAttribute('data-label') || '';
+    items[i].style.display = (!keyword || label.indexOf(keyword) !== -1) ? 'block' : 'none';
+  }
+}
+
+function selectAddTagOption(tagId, el) {
+  document.getElementById('addTagSelectedTagId').value = tagId;
+
+  var items = document.querySelectorAll('#addTagOptionsList .tag-option-item');
+  for (var i = 0; i < items.length; i++) {
+    items[i].style.background = '';
+    items[i].style.fontWeight = 'normal';
+  }
+  el.style.background = '#e6f7ec';
+  el.style.fontWeight = 'bold';
 }
 
 async function submitAddTagToUser() {
   var userId = document.getElementById('addTagUserId').value;
-  var tagId = document.getElementById('addTagSelectModal').value;
+  var tagId = document.getElementById('addTagSelectedTagId').value;
   if (!tagId) {
     showToast('請選擇標籤', 'error');
     return;
