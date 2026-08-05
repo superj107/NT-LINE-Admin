@@ -96,6 +96,7 @@ function getFilteredUserOverview() {
     return false;
   });
 }
+
 function filterUserOverview() {
   _userOverviewSearch = document.getElementById('userOverviewSearch').value.trim();
   _userOverviewPage = 1;
@@ -117,15 +118,16 @@ function renderUserOverviewTable() {
   for (var i = 0; i < paged.length; i++) {
     var u = paged[i];
     var lastActiveText = u.lastActive ? formatDate(new Date(u.lastActive)) : '-';
+    var tags = u.tags || [];
 
     var chips = '';
-    for (var j = 0; j < u.tags.length; j++) {
-      var t = u.tags[j];
+    for (var j = 0; j < tags.length; j++) {
+      var t = tags[j];
       chips += '<span class="tag-chip">' + escHtml(t.name)
         + ' <a href="#" onclick="removeUserTagFromOverview(\'' + u.userId + '\', \'' + t.tagId + '\', \'' + escHtml(t.name) + '\'); return false;">×</a>'
         + '</span> ';
     }
-    if (u.tags.length === 0) chips = '<span style="color:#bbb">無標籤</span>';
+    if (tags.length === 0) chips = '<span style="color:#bbb">無標籤</span>';
 
     var noteDisplay = u.note ? escHtml(u.note) : '<span style="color:#bbb">（無）</span>';
 
