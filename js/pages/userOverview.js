@@ -88,14 +88,14 @@ function getFilteredUserOverview() {
   if (!_userOverviewSearch) return _userOverviewData;
   var kw = _userOverviewSearch.toLowerCase();
   return _userOverviewData.filter(function (u) {
-    if ((u.displayName || '').toLowerCase().indexOf(kw) !== -1) return true;
-    for (var i = 0; i < u.tags.length; i++) {
-      if ((u.tags[i].name || '').toLowerCase().indexOf(kw) !== -1) return true;
+    if (String(u.displayName || '').toLowerCase().indexOf(kw) !== -1) return true;
+    var tags = u.tags || [];
+    for (var i = 0; i < tags.length; i++) {
+      if (String(tags[i].name || '').toLowerCase().indexOf(kw) !== -1) return true;
     }
     return false;
   });
 }
-
 function filterUserOverview() {
   _userOverviewSearch = document.getElementById('userOverviewSearch').value.trim();
   _userOverviewPage = 1;
