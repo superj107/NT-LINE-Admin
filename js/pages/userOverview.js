@@ -201,11 +201,13 @@ function _renderAddTagOptions() {
   for (var i = 0; i < _userOverviewTagOptions.length; i++) {
     var t = _userOverviewTagOptions[i];
     var label = (t.name || '').toLowerCase();
-    html += '<div class="tag-option-item" data-label="' + escHtml(label) + '" '
-      + 'onclick="selectAddTagOption(\'' + t.tagId + '\', this)" '
-      + 'style="padding:6px 8px;cursor:pointer;border-radius:6px;">'
+    var checked = _addTagSelectedIds.indexOf(t.tagId) !== -1;
+    html += '<label class="tag-option-item" data-label="' + escHtml(label) + '" '
+      + 'style="display:flex;align-items:center;gap:8px;padding:6px 8px;cursor:pointer;border-radius:6px;">'
+      + '<input type="checkbox" value="' + t.tagId + '" style="width:auto;margin:0;" '
+      + (checked ? 'checked' : '') + ' onchange="selectAddTagOption(\'' + t.tagId + '\', this)"> '
       + escHtml(t.name)
-      + '</div>';
+      + '</label>';
   }
   container.innerHTML = html;
 }
@@ -215,21 +217,17 @@ function filterAddTagOptions() {
   var items = document.querySelectorAll('#addTagOptionsList .tag-option-item');
   for (var i = 0; i < items.length; i++) {
     var label = items[i].getAttribute('data-label') || '';
-    items[i].style.display = (!keyword || label.indexOf(keyword) !== -1) ? 'block' : 'none';
+    items[i].style.display = (!keyword || label.indexOf(keyword) !== -1) ? 'flex' : 'none';
   }
 }
 
-// ★改為點擊「切換」勾選狀態，而非清掉其他項目（原本是單選）
-function selectAddTagOption(tagId, el) {
+// ★改為勾選框切換勾選狀態（原本是點整列切換底色）
+function selectAddTagOption(tagId, checkboxEl) {
   var idx = _addTagSelectedIds.indexOf(tagId);
-  if (idx === -1) {
-    _addTagSelectedIds.push(tagId);
-    el.style.background = '#e6f7ec';
-    el.style.fontWeight = 'bold';
+  if (checkboxEl.checked) {
+    if (idx === -1) _addTagSelectedIds.push(tagId);
   } else {
-    _addTagSelectedIds.splice(idx, 1);
-    el.style.background = '';
-    el.style.fontWeight = 'normal';
+    if (idx !== -1) _addTagSelectedIds.splice(idx, 1);
   }
 }
 
