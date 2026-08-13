@@ -11,8 +11,10 @@ let _tagListCacheForAudience = null;
 async function loadAudience() {
   setContent('<div class="loading">載入中...</div>');
 
-  const res   = await apiCall({ action: 'getAudienceList' });
-  const rmRes = await apiCall({ action: 'getRichMenuList' });
+  const [res, rmRes] = await Promise.all([
+    apiCall({ action: 'getAudienceList' }),
+    apiCall({ action: 'getRichMenuList' })
+  ]);
 
   if (!res.success) { setContent('<div class="loading">載入失敗</div>'); return; }
 
