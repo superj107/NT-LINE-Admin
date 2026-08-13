@@ -3,6 +3,7 @@
  * pages/userOverview.js
  * 用戶總覽：列出所有用戶與其標籤/人工註記，支援搜尋、人工貼標/移除標籤、編輯人工註記
  * 自動貼標由 Webhook 端的 autoTagByKeyword 負責，這裡只處理人工操作
+ * ★2026-08-13：貼標籤Modal改為複選（原本為單選）
  */
 
 var _userOverviewData = [];
@@ -10,6 +11,7 @@ var _userOverviewPage = 1;
 var _userOverviewPageSize = 20;
 var _userOverviewSearch = '';
 var _userOverviewTagOptions = [];
+var _addTagSelectedIds = [];
 
 function loadUserOverview() {
   _userOverviewSearch = '';
@@ -37,9 +39,8 @@ function _buildAddTagModalHtml() {
     + '  <div class="modal">'
     + '    <h3>貼標籤</h3>'
     + '    <input type="hidden" id="addTagUserId">'
-    + '    <input type="hidden" id="addTagSelectedTagId">'
     + '    <p id="addTagUserName" style="color:#666;font-size:13px;margin-bottom:12px;"></p>'
-    + '    <label>選擇標籤</label>'
+    + '    <label>選擇標籤（可複選）</label>'
     + '    <input type="text" id="addTagSearchInput" placeholder="搜尋標籤..." class="input-search" oninput="filterAddTagOptions()">'
     + '    <div id="addTagOptionsList" style="max-height:200px;overflow-y:auto;border:1px solid #e0e0e0;border-radius:8px;padding:8px;margin-bottom:12px;font-size:14px;">載入中...</div>'
     + '    <div class="modal-footer">'
@@ -167,9 +168,11 @@ function goUserOverviewPage(page) {
   renderUserOverviewTable();
 }
 
+// ===== 貼標籤 Modal（複選） =====
+
 async function openAddTagToUserModal(userId, displayName) {
   document.getElementById('addTagUserId').value = userId;
-  document.getElementById('addTagSelectedTagId').value = '';
+  _addTagSelectedIds = [];
   document.getElementById('addTagUserName').textContent = '對象：' + (displayName || userId);
   document.getElementById('addTagSearchInput').value = '';
 
@@ -216,35 +219,55 @@ function filterAddTagOptions() {
   }
 }
 
+// ★改為點擊「切換」勾選狀態，而非清掉其他項目（原本是單選）
 function selectAddTagOption(tagId, el) {
-  document.getElementById('addTagSelectedTagId').value = tagId;
-
-  var items = document.querySelectorAll('#addTagOptionsList .tag-option-item');
-  for (var i = 0; i < items.length; i++) {
-    items[i].style.background = '';
-    items[i].style.fontWeight = 'normal';
+  var idx = _addTagSelectedIds.indexOf(tagId);
+  if (idx === -1) {
+    _addTagSelectedIds.push(tagId);
+    el.style.background = '#e6f7ec';
+    el.style.fontWeight = 'bold';
+  } else {
+    _addTagSelectedIds.splice(idx, 1);
+    el.style.background = '';
+    el.style.fontWeight = 'normal';
   }
-  el.style.background = '#e6f7ec';
-  el.style.fontWeight = 'bold';
 }
 
+// ★改為依序新增每一個選中的標籤，並統計成功/失敗數量
 async function submitAddTagToUser() {
   var userId = document.getElementById('addTagUserId').value;
-  var tagId = document.getElementById('addTagSelectedTagId').value;
-  if (!tagId) {
-    showToast('請選擇標籤', 'error');
+  if (_addTagSelectedIds.length === 0) {
+    showToast('請選擇至少一個標籤', 'error');
     return;
   }
 
   showLoading();
   try {
-    var res = await apiCall({ action: 'addUserTag', userId: userId, tagId: tagId, operator: (authState && authState.email) || '後台管理員' });
-    hideLoading();
-    if (!res.success) {
-      showToast('新增失敗：' + res.message, 'error');
-      return;
+    var successCount = 0;
+    var failMessages = [];
+    for (var i = 0; i < _addTagSelectedIds.length; i++) {
+      var res = await apiCall({
+        action: 'addUserTag',
+        userId: userId,
+        tagId: _addTagSelectedIds[i],
+        operator: (authState && authState.email) || '後台管理員'
+      });
+      if (res.success) {
+        successCount++;
+      } else {
+        failMessages.push(res.message);
+      }
     }
-    showToast('已新增標籤', 'success');
+    hideLoading();
+
+    if (failMessages.length > 0) {
+      showToast(
+        '成功新增 ' + successCount + ' 個，' + failMessages.length + ' 個失敗：' + failMessages.join('；'),
+        successCount > 0 ? 'success' : 'error'
+      );
+    } else {
+      showToast('已新增 ' + successCount + ' 個標籤', 'success');
+    }
     closeModal('addTagToUserModal');
     loadUserOverviewData();
   } catch (err) {
