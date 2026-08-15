@@ -123,8 +123,9 @@ async function loadCoupon() {
         <!-- 訊息模板 -->
         <div class="form-group">
           <label>訊息模板 <span style="color:var(--text-muted);font-size:12px;font-weight:400">（用 {{序號}} 代表每人專屬序號）</span></label>
-          <textarea id="push-message-template" class="form-textarea" rows="5"
-            placeholder="親愛的會員您好！&#10;您的專屬優惠序號為：{{序號}}&#10;請於活動期間內使用，感謝您的支持！"></textarea>
+          <textarea id="push-message-template" class="form-textarea" rows="5">親愛的會員您好！
+            您的專屬優惠序號為：{{序號}}
+            請於活動期間內使用，感謝您的支持！</textarea>
           <div class="form-hint">{{序號}} 會自動替換為每位用戶的專屬序號</div>
         </div>
 
