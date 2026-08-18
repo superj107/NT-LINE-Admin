@@ -15,6 +15,7 @@ var _addTagSelectedIds = [];
 
 function loadUserOverview() {
   _userOverviewSearch = '';
+  _userOverviewPage = 1;   // ★新增：只在真正「重新進入這個頁面」時重置
 
   var html = ''
     + '<h2 class="page-title">用戶總覽</h2>'
@@ -77,7 +78,7 @@ function loadUserOverviewData() {
       return;
     }
     _userOverviewData = res.data.list;
-    _userOverviewPage = 1;
+    // ★移除：_userOverviewPage = 1;  不要在這裡重置頁碼
     renderUserOverviewTable();
   }).catch(function (err) {
     hideLoading();
