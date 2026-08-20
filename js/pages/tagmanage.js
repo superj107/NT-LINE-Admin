@@ -186,12 +186,8 @@ function openEditTagModal(tagId) {
 async function _renderTagAudienceLinkSection(currentTagId) {
   var container = document.getElementById('tagModalAudienceLinkSection');
   container.innerHTML = '載入中...';
-
-  if (!_audienceListCache) {
-    var audRes = await apiCall({ action: 'getAudienceList' });
-    _audienceListCache = (audRes.success ? audRes.data : []) || [];
-  }
-
+  var audRes = await apiCall({ action: 'getAudienceList' });      // 每次都重新查，不快取
+  _audienceListCache = (audRes.success ? audRes.data : []) || [];
   if (_audienceListCache.length === 0) {
     container.innerHTML = '<span style="color:#999">目前沒有任何受眾可連結</span>';
     return;
