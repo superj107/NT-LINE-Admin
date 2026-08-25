@@ -274,7 +274,8 @@ async function loadCouponDetail() {
           <th>#</th>
           <th>序號</th>
           <th>狀態</th>
-          <th>發送對象</th>
+          <th>發送對象UID</th>
+          <th>發送對象名稱</th>
           <th>發送時間</th>
         </tr>
       </thead>
@@ -285,6 +286,7 @@ async function loadCouponDetail() {
             <td><code>${r.code}</code></td>
             <td><span class="status-badge ${r.status === '已發送' ? 'used' : 'unused'}">${r.status}</span></td>
             <td>${r.uid ? `<small>${r.uid}</small>` : '-'}</td>
+            <td>${r.display_name ? escHtml(r.display_name) : '-'}</td>
             <td>${r.sent_time || '-'}</td>
           </tr>
         `).join('')}
