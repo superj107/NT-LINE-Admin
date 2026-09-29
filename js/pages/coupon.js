@@ -1,3 +1,4 @@
+/** coupon.js, GitHub Pages前端 */
 // js/pages/coupon.js
 
 let _couponActivities = [];
@@ -136,7 +137,7 @@ async function loadCoupon() {
         <div id="push-summary" class="bc-target-info" style="margin-bottom:12px">請先選擇目標和填寫訊息</div>
 
         <div class="modal-footer">
-          <button class="btn btn-secondary" onclick="closePushCouponModal()">取消</button>
+          <button class="btn btn-secondary" onclick="closePushCouponModal()" id="push-cancel-btn">取消</button>
           <button class="btn btn-primary" onclick="submitPushCoupon()" id="push-coupon-btn" disabled>🚀 確認推播</button>
         </div>
       </div>
@@ -419,6 +420,11 @@ async function deleteActivity() {
 // ── 主動推播發券 ──────────────────────────────────────
 
 let _pushTab = 'audience';
+let _pushRunning = false;
+
+// ★2026-09-29：只用來顯示「預計分幾批」，實際每批人數以後端
+//   CouponService.gs 的 COUPON_PUSH_MAX_PER_CALL 為準，兩邊請保持一致
+const COUPON_PUSH_BATCH_SIZE = 100;
 
 async function openPushCouponModal() {
   if (!_selectedActivity) { showToast('請先選擇活動', 'warning'); return; }
@@ -431,6 +437,7 @@ async function openPushCouponModal() {
   document.getElementById('push-coupon-btn').disabled = true;
   document.getElementById('push-uids-input').value = '';
   document.getElementById('push-uids-hint').textContent = '已輸入 0 個 UID';
+  setPushControlsDisabled(false);
   switchPushTab('audience');
 
   // 載入受眾下拉選單
@@ -458,7 +465,20 @@ async function openPushCouponModal() {
 }
 
 function closePushCouponModal() {
+  if (_pushRunning) {
+    showToast('發券進行中，請等待全部批次完成再關閉', 'warning');
+    return;
+  }
   document.getElementById('push-coupon-modal').style.display = 'none';
+}
+
+// 發送過程中鎖住所有輸入，避免中途改目標/模板或重複按下
+function setPushControlsDisabled(disabled) {
+  ['push-coupon-btn', 'push-cancel-btn', 'tab-audience', 'tab-uids',
+   'push-audience-select', 'push-uids-input', 'push-message-template'].forEach(function(id) {
+    const el = document.getElementById(id);
+    if (el) el.disabled = disabled;
+  });
 }
 
 function switchPushTab(tab) {
@@ -481,6 +501,8 @@ function updatePushPreview() {
 }
 
 function updatePushSummary() {
+  if (_pushRunning) return;
+
   const tpl = (document.getElementById('push-message-template').value || '').trim();
   const act = _couponActivities.find(function(a) { return a.name === _selectedActivity; });
   const remaining = act ? act.remaining : 0;
@@ -515,6 +537,7 @@ function updatePushSummary() {
     return;
   }
 
+  // 註：這裡的人數含「已領取過」的人，實際是否足夠以後端扣除已領取者後的判斷為準
   if (targetCount > remaining) {
     summaryEl.innerHTML = '⚠️ 剩餘券數不足！目標 <strong>' + targetCount + '</strong> 人，剩餘 <strong>' + remaining + '</strong> 張';
     summaryEl.className = 'bc-target-info';
@@ -522,19 +545,22 @@ function updatePushSummary() {
     return;
   }
 
-  if (targetCount > 200) {
-    summaryEl.innerHTML = '⚠️ 單批上限 200 人，請分批發送（目前 <strong>' + targetCount + '</strong> 人）';
-    summaryEl.className = 'bc-target-info';
-    btnEl.disabled = true;
-    return;
+  let html = '目標 <strong>' + targetCount + '</strong> 人，剩餘券 <strong>' + remaining + '</strong> 張，發送後剩 <strong>' + (remaining - targetCount) + '</strong> 張';
+  if (targetCount > COUPON_PUSH_BATCH_SIZE) {
+    const batches = Math.ceil(targetCount / COUPON_PUSH_BATCH_SIZE);
+    html += '<br>將自動分約 <strong>' + batches + '</strong> 批依序發送，過程中請勿關閉或重新整理頁面';
   }
-
-  summaryEl.innerHTML = '目標 <strong>' + targetCount + '</strong> 人，剩餘券 <strong>' + remaining + '</strong> 張，發送後剩 <strong>' + (remaining - targetCount) + '</strong> 張';
+  summaryEl.innerHTML = html;
   summaryEl.className = 'bc-target-info selected';
   btnEl.disabled = false;
 }
 
+// ★2026-09-29：自動分批續發
+//   同一組參數重複呼叫後端，每次後端只處理尚未領取的前一批，直到 remaining 為 0。
+//   已領取者由後端依 CouponPool 判斷跳過，所以中途中斷後再按一次「確認推播」，會從沒發到的人繼續，不會重複發。
 async function submitPushCoupon() {
+  if (_pushRunning) return;
+
   const tpl = (document.getElementById('push-message-template').value || '').trim();
   if (!tpl || !tpl.includes('{{序號}}')) {
     showToast('訊息模板必須包含 {{序號}}', 'warning');
@@ -559,21 +585,76 @@ async function submitPushCoupon() {
   }
 
   const confirmed = await confirmDialog(
-    '確定要推播發券給目標用戶嗎？\n此操作會消耗序號，無法復原。'
+    '確定要推播發券給目標用戶嗎？\n人數較多時會自動分批發送，過程中請勿關閉或重新整理頁面。\n此操作會消耗序號，無法復原。'
   );
   if (!confirmed) return;
 
-  const res = await apiCall(payload);
-  if (res.success) {
-    const d = res.data;
-    let msg = '✅ 推播完成！成功 ' + d.success + ' 人';
-    if (d.skipped) msg += '，已領取跳過 ' + d.skipped + ' 人';
-    if (d.fail)    msg += '，失敗 ' + d.fail + ' 人';
-    showToast(msg, 'success');
-    closePushCouponModal();
-    await refreshCouponActivities();
-    loadCouponDetail();
+  const summaryEl = document.getElementById('push-summary');
+  let round        = 0;
+  let totalSuccess = 0;
+  let totalFail    = 0;
+  let totalSkipped = null;
+  let failUids     = [];
+  let stopMsg      = '';
+
+  _pushRunning = true;
+  setPushControlsDisabled(true);
+
+  try {
+    while (true) {
+      round++;
+      payload.exclude_uids = failUids.slice();
+      summaryEl.className = 'bc-target-info selected';
+      summaryEl.innerHTML = '⏳ 第 <strong>' + round + '</strong> 批發送中…　已成功 <strong>' + totalSuccess + '</strong> 人' +
+        (totalFail ? '，失敗 <strong>' + totalFail + '</strong> 人' : '');
+
+      const res = await apiCall(payload);
+      if (!res || !res.success) {
+        stopMsg = (res && (res.message || res.error)) || '連線失敗';
+        break;
+      }
+
+      const d = res.data;
+      if (totalSkipped === null) totalSkipped = d.skipped || 0;
+      totalSuccess += d.success || 0;
+      totalFail    += d.fail || 0;
+      failUids = failUids.concat(d.fail_uids || []);
+
+      if (!d.remaining || !d.processed) break;
+    }
+  } finally {
+    _pushRunning = false;
+    setPushControlsDisabled(false);
   }
+
+  let msg = '成功 ' + totalSuccess + ' 人';
+  if (totalSkipped) msg += '，已領取跳過 ' + totalSkipped + ' 人';
+  if (totalFail)    msg += '，失敗 ' + totalFail + ' 人';
+
+  let detailHtml = escHtml(msg);
+  if (failUids.length) {
+    console.log('pushCoupons 失敗UID：', failUids);
+    detailHtml += '<br><small>失敗UID（序號未消耗，可稍後再按一次重試）：<br>' +
+      failUids.map(function(u) { return escHtml(u); }).join('<br>') + '</small>';
+  }
+
+  if (stopMsg) {
+    // 中途中斷：保留視窗，讓操作者看到進度，再按一次「確認推播」即可從沒發到的人繼續
+    summaryEl.className = 'bc-target-info';
+    summaryEl.innerHTML = '⚠️ 發送中斷：' + escHtml(stopMsg) + '<br>目前 ' + detailHtml +
+      (totalSuccess ? '<br>再按一次「確認推播」會從尚未發送的人繼續，已領取者自動跳過' : '');
+    showToast(totalSuccess ? '⚠️ 部分完成：' + msg + '（發送中斷）' : '⚠️ ' + stopMsg, 'warning');
+  } else if (totalFail) {
+    summaryEl.className = 'bc-target-info';
+    summaryEl.innerHTML = '推播完成，但有部分失敗：' + detailHtml;
+    showToast('⚠️ 推播完成：' + msg, 'warning');
+  } else {
+    showToast('✅ 推播完成！' + msg, 'success');
+    closePushCouponModal();
+  }
+
+  await refreshCouponActivities();
+  loadCouponDetail();
 }
 
 // ── 工具函式 ──────────────────────────────────────
