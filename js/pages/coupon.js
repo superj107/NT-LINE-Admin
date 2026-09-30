@@ -595,6 +595,7 @@ async function submitPushCoupon() {
   let totalFail    = 0;
   let totalSkipped = null;
   let failUids     = [];
+  let blockedUids  = [];   // ★2026-09-30：發送前即時查到已封鎖官方帳號的人（跳過、不占序號）
   let stopMsg      = '';
 
   _pushRunning = true;
@@ -603,9 +604,10 @@ async function submitPushCoupon() {
   try {
     while (true) {
       round++;
-      payload.exclude_uids = failUids.slice();
+      payload.exclude_uids = failUids.concat(blockedUids);
       summaryEl.className = 'bc-target-info selected';
       summaryEl.innerHTML = '⏳ 第 <strong>' + round + '</strong> 批發送中…　已成功 <strong>' + totalSuccess + '</strong> 人' +
+        (blockedUids.length ? '，已封鎖跳過 <strong>' + blockedUids.length + '</strong> 人' : '') +
         (totalFail ? '，失敗 <strong>' + totalFail + '</strong> 人' : '');
 
       const res = await apiCall(payload);
@@ -619,6 +621,7 @@ async function submitPushCoupon() {
       totalSuccess += d.success || 0;
       totalFail    += d.fail || 0;
       failUids = failUids.concat(d.fail_uids || []);
+      blockedUids = blockedUids.concat(d.blocked_uids || []);
 
       if (!d.remaining || !d.processed) break;
     }
@@ -629,6 +632,7 @@ async function submitPushCoupon() {
 
   let msg = '成功 ' + totalSuccess + ' 人';
   if (totalSkipped) msg += '，已領取跳過 ' + totalSkipped + ' 人';
+  if (blockedUids.length) msg += '，已封鎖跳過 ' + blockedUids.length + ' 人（未占用序號）';
   if (totalFail)    msg += '，失敗 ' + totalFail + ' 人';
 
   let detailHtml = escHtml(msg);
