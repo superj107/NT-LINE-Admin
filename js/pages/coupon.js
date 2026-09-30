@@ -1,4 +1,4 @@
-/** coupon.js, GitHub Pages前端 */
+/** 檔名: coupon.js | 所屬: GitHub Pages前端 */
 // js/pages/coupon.js
 
 let _couponActivities = [];
